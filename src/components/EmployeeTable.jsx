@@ -17,7 +17,11 @@ function EmployeeTable({ employees }) {
             <td>{emp.first_name}</td>
             <td>{emp.last_name}</td>
             <td>{emp.email}</td>
-            <td>{emp.hire_date}</td>
+            <td>
+  {emp.hire_date.split("T")[0]}
+
+</td>
+
           </tr>
         ))}
       </tbody>
