@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import EmployeeTable from "../components/EmployeeTable"
 import { getEmployees } from "../api/employeeService"
+import EmployeeForm from "../components/EmployeeForm";
+import { createEmployee } from "../api/employeeService";
 
 function EmployeesPage() {
   const [employees, setEmployees] = useState([])
@@ -22,6 +24,16 @@ function EmployeesPage() {
 
   fetchEmployees();
 }, []);
+
+  const handleAddEmployee = async (employeeData) => {
+    try {
+      await createEmployee(employeeData);
+      const response = await getEmployees();
+      setEmployees(response.data);
+    } catch (error) {
+      console.error("Error adding employee:", error);
+    }
+  };
 
 
   if (loading) return <p>Loading employees...</p>
