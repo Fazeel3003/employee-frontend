@@ -1,14 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-function EmployeeForm({ onEmployeeAdded }) {
+function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
+
   const [formData, setFormData] = useState({
-    employee_code:"",
+    employee_code: "",
     first_name: "",
     last_name: "",
     email: "",
     hire_date: ""
   });
 
+  // ===============================
+  // AUTO FILL WHEN EDITING
+  // ===============================
+  useEffect(() => {
+    if (editingEmployee) {
+      setFormData({
+        employee_code: editingEmployee.employee_code || "",
+        first_name: editingEmployee.first_name || "",
+        last_name: editingEmployee.last_name || "",
+        email: editingEmployee.email || "",
+        hire_date: editingEmployee.hire_date
+          ? editingEmployee.hire_date.split("T")[0]
+          : ""
+      });
+    }
+  }, [editingEmployee]);
+
+  // ===============================
+  // HANDLE INPUT CHANGE
+  // ===============================
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -16,11 +37,17 @@ function EmployeeForm({ onEmployeeAdded }) {
     });
   };
 
+  // ===============================
+  // HANDLE SUBMIT (ADD OR UPDATE)
+  // ===============================
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     await onEmployeeAdded(formData);
 
+    // Reset form after save
     setFormData({
+      employee_code: "",
       first_name: "",
       last_name: "",
       email: "",
@@ -30,19 +57,14 @@ function EmployeeForm({ onEmployeeAdded }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">Add Employee</h3>
+      <h3 className="text-lg font-semibold mb-4">
+        {editingEmployee ? "Edit Employee" : "Add Employee"}
+      </h3>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-
-        {/* <input
-  type="text"
-  name="employee_code"
-  placeholder="Employee Code"
-  value={formData.employee_code}
-  onChange={handleChange}
-  required
-  className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-/> */}
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 md:grid-cols-4 gap-4"
+      >
 
         <input
           type="text"
@@ -87,7 +109,7 @@ function EmployeeForm({ onEmployeeAdded }) {
           type="submit"
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md md:col-span-4"
         >
-          Add Employee
+          {editingEmployee ? "Update Employee" : "Add Employee"}
         </button>
 
       </form>

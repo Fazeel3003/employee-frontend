@@ -1,7 +1,7 @@
 import axiosInstance from "./axiosInstance";
 
-export const getEmployees = () => {
-  return axiosInstance.get("/employees");
+export const getEmployees = (page = 1, limit = 10) => {
+  return axiosInstance.get(`/employees?page=${page}&limit=${limit}`);
 };
 
 export const getEmployeeById = (id) => {

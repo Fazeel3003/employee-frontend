@@ -1,4 +1,4 @@
-function EmployeeTable({ employees }) {
+function EmployeeTable({ employees, onDelete, onEdit }) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full border border-gray-200 rounded-lg">
@@ -9,6 +9,7 @@ function EmployeeTable({ employees }) {
             <th className="px-4 py-3 text-sm font-semibold text-gray-600">Last Name</th>
             <th className="px-4 py-3 text-sm font-semibold text-gray-600">Email</th>
             <th className="px-4 py-3 text-sm font-semibold text-gray-600">Hire Date</th>
+            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Actions</th>
           </tr>
         </thead>
 
@@ -22,6 +23,24 @@ function EmployeeTable({ employees }) {
               <td className="px-4 py-3">
                 {emp.hire_date?.split("T")[0]}
               </td>
+
+              {/* ✅ Actions Column */}
+              <td className="px-4 py-3 space-x-2">
+                <button
+                  onClick={() => onEdit(emp)}
+                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() => onDelete(emp.emp_id)}
+                  className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition"
+                >
+                  Delete
+                </button>
+              </td>
+
             </tr>
           ))}
         </tbody>

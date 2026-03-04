@@ -1,66 +1,119 @@
 import { useEffect, useState } from "react";
 import EmployeeTable from "../components/EmployeeTable";
 import EmployeeForm from "../components/EmployeeForm";
-import { getEmployees, createEmployee } from "../api/employeeService";
+import {
+  getEmployees,
+  createEmployee,
+  deleteEmployee,
+  updateEmployee,
+} from "../api/employeeService";
 
 function EmployeesPage() {
+  // ===============================
+  // STATES
+  // ===============================
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
- const fetchEmployees = async () => {
-  try {
-    setLoading(true);
-    const response = await getEmployees();
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-    console.log("API Response:", response.data);
+  const [editingEmployee, setEditingEmployee] = useState(null);
 
-    setEmployees(
-      Array.isArray(response.data.data)
-        ? response.data.data
-        : []
-    );
+  // ===============================
+  // FETCH EMPLOYEES
+  // ===============================
+  const fetchEmployees = async (currentPage = 1) => {
+    try {
+      setLoading(true);
+      const response = await getEmployees(currentPage);
 
-  } catch (err) {
-    setError("Failed to fetch employees");
-  } finally {
-    setLoading(false);
-  }
-};
+      console.log("API Response:", response.data);
+
+      setEmployees(
+        Array.isArray(response.data.data)
+          ? response.data.data
+          : []
+      );
+
+      setPage(response.data.page);
+      setTotalPages(response.data.totalPages);
+
+    } catch (err) {
+      setError("Failed to fetch employees");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchEmployees();
+    fetchEmployees(1);
   }, []);
 
-  // const handleAddEmployee = async (employeeData) => {
-  //   try {
-  //     await createEmployee(employeeData);
-  //     fetchEmployees(); // cleaner refresh
-  //   } catch (error) {
-  //     console.error("Error adding employee:", error);
-  //   }
-  // };
+  // ===============================
+  // ADD OR UPDATE EMPLOYEE
+  // ===============================
+  const handleSaveEmployee = async (employeeData) => {
+    try {
+      if (editingEmployee) {
+        await updateEmployee(editingEmployee.emp_id, employeeData);
+        setEditingEmployee(null);
+      } else {
+        await createEmployee(employeeData);
+      }
 
-  const handleAddEmployee = async (employeeData) => {
-  try {
-    console.log("SENDING DATA:", employeeData);
-    await createEmployee(employeeData);
-    fetchEmployees();
-  } catch (error) {
-    console.error("ERROR RESPONSE:", error.response?.data);
-  }
-};
+      fetchEmployees(page);
+    } catch (error) {
+      console.error("Save failed:", error.response?.data);
+    }
+  };
 
+  // ===============================
+  // DELETE EMPLOYEE
+  // ===============================
+  const handleDeleteEmployee = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this employee?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await deleteEmployee(id);
+      fetchEmployees(page);
+    } catch (error) {
+      console.error("Delete failed:", error.response?.data);
+    }
+  };
+
+  // ===============================
+  // EDIT CLICK
+  // ===============================
+  const handleEditEmployee = (employee) => {
+    setEditingEmployee(employee);
+  };
+
+  // ===============================
+  // UI
+  // ===============================
   return (
     <div>
+
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Employees</h2>
       </div>
 
+      {/* FORM */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <EmployeeForm onEmployeeAdded={handleAddEmployee} />
+        <EmployeeForm
+          onEmployeeAdded={handleSaveEmployee}
+          editingEmployee={editingEmployee}
+        />
       </div>
 
+      {/* TABLE */}
       <div className="bg-white shadow rounded-lg p-6">
         {loading && (
           <p className="text-gray-500">Loading employees...</p>
@@ -71,7 +124,36 @@ function EmployeesPage() {
         )}
 
         {!loading && !error && (
-          <EmployeeTable employees={employees} />
+          <>
+            <EmployeeTable
+              employees={employees}
+              onDelete={handleDeleteEmployee}
+              onEdit={handleEditEmployee}
+            />
+
+            {/* PAGINATION */}
+            <div className="flex justify-center gap-2 mt-6">
+              <button
+                disabled={page === 1}
+                onClick={() => fetchEmployees(page - 1)}
+                className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+
+              <span className="px-3 py-1">
+                Page {page} of {totalPages}
+              </span>
+
+              <button
+                disabled={page === totalPages}
+                onClick={() => fetchEmployees(page + 1)}
+                className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
