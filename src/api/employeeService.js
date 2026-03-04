@@ -1,15 +1,21 @@
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 
-const API = axios.create({
-  baseURL: "http://localhost:3000/api/v1"
-});
-
-export const getEmployees = async () => {
-  const response = await API.get("/employees");
-  return response.data;
+export const getEmployees = () => {
+  return axiosInstance.get("/employees");
 };
 
-export const createEmployee = async (employeeData) => {
-  const response = await API.post("/employees", employeeData);
-  return response.data;
+export const getEmployeeById = (id) => {
+  return axiosInstance.get(`/employees/${id}`);
+};
+
+export const createEmployee = (data) => {
+  return axiosInstance.post("/employees", data);
+};
+
+export const updateEmployee = (id, data) => {
+  return axiosInstance.put(`/employees/${id}`, data);
+};
+
+export const deleteEmployee = (id) => {
+  return axiosInstance.delete(`/employees/${id}`);
 };
