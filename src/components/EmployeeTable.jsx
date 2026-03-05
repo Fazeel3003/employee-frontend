@@ -4,6 +4,9 @@ function EmployeeTable({ employees, onDelete, onEdit }) {
       <table className="min-w-full border border-gray-200 rounded-lg">
         <thead className="bg-gray-100 text-left">
           <tr>
+            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
+Employee Code
+</th>
             <th className="px-4 py-3 text-sm font-semibold text-gray-600">ID</th>
             <th className="px-4 py-3 text-sm font-semibold text-gray-600">First Name</th>
             <th className="px-4 py-3 text-sm font-semibold text-gray-600">Last Name</th>
@@ -16,6 +19,7 @@ function EmployeeTable({ employees, onDelete, onEdit }) {
         <tbody>
           {employees.map((emp) => (
             <tr key={emp.emp_id} className="border-t hover:bg-gray-50">
+              <td className="px-4 py-3">{emp.employee_code}</td>
               <td className="px-4 py-3">{emp.emp_id}</td>
               <td className="px-4 py-3">{emp.first_name}</td>
               <td className="px-4 py-3">{emp.last_name}</td>

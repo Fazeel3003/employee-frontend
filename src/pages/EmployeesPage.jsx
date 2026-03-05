@@ -21,13 +21,15 @@ function EmployeesPage() {
 
   const [editingEmployee, setEditingEmployee] = useState(null);
 
+  const [search, setSearch] = useState("");
+
   // ===============================
   // FETCH EMPLOYEES
   // ===============================
-  const fetchEmployees = async (currentPage = 1) => {
+  const fetchEmployees = async (pageNum = page, searchQuery = search) =>  {
     try {
       setLoading(true);
-      const response = await getEmployees(currentPage);
+      const response = await getEmployees(pageNum, searchQuery);
 
       console.log("API Response:", response.data);
 
@@ -112,6 +114,19 @@ function EmployeesPage() {
           editingEmployee={editingEmployee}
         />
       </div>
+
+      <div className="mb-4">
+  <input
+    type="text"
+    placeholder="Search employees..."
+    value={search}
+    onChange={(e) => {
+      setSearch(e.target.value);
+      fetchEmployees(1, e.target.value);
+    }}
+    className="border px-3 py-2 rounded-md w-64"
+  />
+</div>
 
       {/* TABLE */}
       <div className="bg-white shadow rounded-lg p-6">
