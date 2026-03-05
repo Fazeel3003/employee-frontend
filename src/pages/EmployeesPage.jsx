@@ -9,6 +9,7 @@ import {
 } from "../api/employeeService";
 
 function EmployeesPage() {
+
   // ===============================
   // STATES
   // ===============================
@@ -26,10 +27,11 @@ function EmployeesPage() {
   // ===============================
   // FETCH EMPLOYEES
   // ===============================
-  const fetchEmployees = async (pageNum = page, searchQuery = search) =>  {
+  const fetchEmployees = async (pageNum = 1, searchQuery = "") => {
     try {
       setLoading(true);
-      const response = await getEmployees(pageNum, searchQuery);
+
+      const response = await getEmployees(pageNum, 10, searchQuery);
 
       console.log("API Response:", response.data);
 
@@ -49,9 +51,27 @@ function EmployeesPage() {
     }
   };
 
+  // ===============================
+  // INITIAL LOAD
+  // ===============================
   useEffect(() => {
-    fetchEmployees(1);
+    fetchEmployees(1, search);
   }, []);
+
+  // ===============================
+  // PAGE CHANGE
+  // ===============================
+  useEffect(() => {
+    fetchEmployees(page, search);
+  }, [page]);
+
+  // ===============================
+  // SEARCH CHANGE
+  // ===============================
+  useEffect(() => {
+    setPage(1);
+    fetchEmployees(1, search);
+  }, [search]);
 
   // ===============================
   // ADD OR UPDATE EMPLOYEE
@@ -65,7 +85,8 @@ function EmployeesPage() {
         await createEmployee(employeeData);
       }
 
-      fetchEmployees(page);
+      fetchEmployees(page, search);
+
     } catch (error) {
       console.error("Save failed:", error.response?.data);
     }
@@ -83,7 +104,8 @@ function EmployeesPage() {
 
     try {
       await deleteEmployee(id);
-      fetchEmployees(page);
+      fetchEmployees(page, search);
+
     } catch (error) {
       console.error("Delete failed:", error.response?.data);
     }
@@ -115,21 +137,20 @@ function EmployeesPage() {
         />
       </div>
 
+      {/* SEARCH */}
       <div className="mb-4">
-  <input
-    type="text"
-    placeholder="Search employees..."
-    value={search}
-    onChange={(e) => {
-      setSearch(e.target.value);
-      fetchEmployees(1, e.target.value);
-    }}
-    className="border px-3 py-2 rounded-md w-64"
-  />
-</div>
+        <input
+          type="text"
+          placeholder="Search employees..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border px-3 py-2 rounded-md w-64"
+        />
+      </div>
 
       {/* TABLE */}
       <div className="bg-white shadow rounded-lg p-6">
+
         {loading && (
           <p className="text-gray-500">Loading employees...</p>
         )}
@@ -148,9 +169,10 @@ function EmployeesPage() {
 
             {/* PAGINATION */}
             <div className="flex justify-center gap-2 mt-6">
+
               <button
                 disabled={page === 1}
-                onClick={() => fetchEmployees(page - 1)}
+                onClick={() => setPage(page - 1)}
                 className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
               >
                 Previous
@@ -162,11 +184,12 @@ function EmployeesPage() {
 
               <button
                 disabled={page === totalPages}
-                onClick={() => fetchEmployees(page + 1)}
+                onClick={() => setPage(page + 1)}
                 className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
               >
                 Next
               </button>
+
             </div>
           </>
         )}
