@@ -7,12 +7,15 @@ import {
   deleteEmployee,
   updateEmployee,
 } from "../api/employeeService";
+import Pagination from "../components/Pagination";
+import { useModal } from "../context/ModalContext";
 
 function EmployeesPage() {
 
   // ===============================
   // STATES
   // ===============================
+  const { showConfirmDelete, showSuccess, showError } = useModal();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,8 +35,6 @@ function EmployeesPage() {
       setLoading(true);
 
       const response = await getEmployees(pageNum, 10, searchQuery);
-
-      console.log("API Response:", response.data);
 
       setEmployees(
         Array.isArray(response.data.data)
@@ -96,19 +97,22 @@ function EmployeesPage() {
   // DELETE EMPLOYEE
   // ===============================
   const handleDeleteEmployee = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this employee?"
+    const employee = employees.find(emp => emp.emp_id === id);
+    const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : 'this employee';
+    
+    showConfirmDelete(
+      employeeName,
+      async () => {
+        try {
+          await deleteEmployee(id);
+          fetchEmployees(page, search);
+          showSuccess("Employee deleted successfully!");
+        } catch (error) {
+          showError("Failed to delete employee. Please try again.");
+        }
+      },
+      `Employee ID: ${id}\nName: ${employeeName}\nEmail: ${employee?.email || 'N/A'}\nPosition: ${employee?.position || 'N/A'}`
     );
-
-    if (!confirmDelete) return;
-
-    try {
-      await deleteEmployee(id);
-      fetchEmployees(page, search);
-
-    } catch (error) {
-      console.error("Delete failed:", error.response?.data);
-    }
   };
 
   // ===============================
@@ -167,30 +171,12 @@ function EmployeesPage() {
               onEdit={handleEditEmployee}
             />
 
-            {/* PAGINATION */}
-            <div className="flex justify-center gap-2 mt-6">
+            <Pagination
+  page={page}
+  totalPages={totalPages}
+  onPageChange={(newPage) => fetchEmployees(newPage)}
+/>
 
-              <button
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-                className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
-
-              <span className="px-3 py-1">
-                Page {page} of {totalPages}
-              </span>
-
-              <button
-                disabled={page === totalPages}
-                onClick={() => setPage(page + 1)}
-                className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-
-            </div>
           </>
         )}
       </div>
