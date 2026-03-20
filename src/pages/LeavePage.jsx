@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import LeaveForm from "../components/LeaveForm";
 import LeaveTable from "../components/LeaveTable";
+import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
 import { useModal } from "../context/ModalContext";
+import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 import {
   getLeaveRequests,
   createLeaveRequest,
@@ -12,94 +15,179 @@ import {
   rejectLeaveRequest
 } from "../api/leaveService";
 import { getEmployees } from "../api/employeeService";
+import axiosInstance from "../api/axiosInstance";
 
 function LeavePage() {
-  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [allLeaveRequests, setAllLeaveRequests] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const { showConfirmDelete, showSuccess, showError } = useModal();
-  const [searchEmployee, setSearchEmployee] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingLeave, setEditingLeave] = useState(null);
+  const { isAdmin, isHR, isManager, isUser } = useAuth();
+  const canManageAll = isAdmin() || isHR() || isManager();
+
+  const itemsPerPage = 10;
 
   const fetchEmployees = async () => {
     try {
-      const response = await getEmployees(1, 1000, "");
-      setEmployees(
-        Array.isArray(response.data.data)
-          ? response.data.data
-          : []
-      );
+      if (!canManageAll) return;
+      
+      let empList = [];
+      if (isManager()) {
+        const res = await axiosInstance.get('/employees/team');
+        empList = res.data.data || [];
+      } else {
+        const res = await getEmployees(1, 1000, "");
+        empList = Array.isArray(res.data.data) 
+          ? res.data.data : [];
+      }
+      setEmployees(empList);
     } catch (err) {
-      setError("Failed to fetch employees");
+      console.error('Failed to fetch employees:', err);
     }
   };
 
-  const fetchLeaveRequests = async (pageNum = 1, empId = "") => {
+  const fetchLeaveRequests = async () => {
     try {
       setLoading(true);
-      const response = await getLeaveRequests(pageNum, 10, empId);
+      const response = await getLeaveRequests(1, 1000, ""); // Fetch all for frontend filtering
       
-      setLeaveRequests(
-        Array.isArray(response.data.data)
-          ? response.data.data
-          : []
-      );
+      const leaveList = Array.isArray(response.data.data)
+        ? response.data.data
+        : [];
       
-      setPage(response.data.page);
-      setTotalPages(response.data.totalPages);
+      setAllLeaveRequests(leaveList);
       
     } catch (err) {
       setError("Failed to fetch leave requests");
+      setAllLeaveRequests([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    if (canManageAll) fetchEmployees();
+    fetchLeaveRequests();
+  }, [canManageAll]);
 
+  // Search filter logic
+  const filteredLeaveRequests = allLeaveRequests.filter(item => {
+    const query = searchQuery.toLowerCase();
+    return (
+      item.first_name?.toLowerCase().includes(query) ||
+      item.last_name?.toLowerCase().includes(query) ||
+      item.leave_type?.toLowerCase().includes(query) ||
+      item.approval_status?.toLowerCase().includes(query)
+    );
+  });
+
+  // Reset page when search changes
   useEffect(() => {
-    if (employees.length > 0 || page === 1) {
-      fetchLeaveRequests(page, searchEmployee);
-    }
-  }, [page, searchEmployee, employees.length]);
+    setPage(1);
+  }, [searchQuery]);
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setPage(1);
+  };
+
+  // Pagination for filtered results
+  const totalPagesFiltered = Math.ceil(filteredLeaveRequests.length / itemsPerPage);
+  const paginatedLeaveRequests = filteredLeaveRequests.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
 
   const handleSaveLeave = async (data) => {
     try {
       if (editingLeave) {
         await updateLeaveRequest(editingLeave.leave_id, data);
         setEditingLeave(null);
+        toast.success('Leave request updated successfully!', {
+          duration: 4000,
+          style: {
+            background: '#10B981',
+            color: '#fff',
+            fontWeight: '600',
+            borderRadius: '10px',
+            padding: '16px 24px',
+          }
+        });
       } else {
         await createLeaveRequest(data);
+        toast.success('Leave request submitted successfully!', {
+          duration: 4000,
+          style: {
+            background: '#10B981',
+            color: '#fff',
+            fontWeight: '600',
+            borderRadius: '10px',
+            padding: '16px 24px',
+          }
+        });
       }
 
-      fetchLeaveRequests(page, searchEmployee);
+      // Reset search and page
+      setSearchQuery('');
+      setPage(1);
+      await fetchLeaveRequests();
 
     } catch (error) {
-      setError("Save failed");
+      toast.error('Failed to process request. Try again.', {
+        duration: 4000,
+        style: {
+          background: '#EF4444',
+          color: '#fff',
+          fontWeight: '600',
+          borderRadius: '10px',
+          padding: '16px 24px',
+        }
+      });
     }
   };
 
   const handleDeleteLeave = async (id) => {
-    const leaveRequest = leaveRequests.find(lr => lr.leave_id === id);
-    const leaveDetails = leaveRequest ? `${leaveRequest.leave_type} leave for ${leaveRequest.emp_name || `Employee ${leaveRequest.emp_id}`} (${leaveRequest.start_date?.split('T')[0]} to ${leaveRequest.end_date?.split('T')[0]})` : 'this leave request';
+    const leaveRequest = allLeaveRequests.find(lr => lr.leave_id === id);
+    const leaveDetails = leaveRequest ? `${leaveRequest.leave_type} leave for ${leaveRequest.first_name || ''} ${leaveRequest.last_name || ''} (${leaveRequest.start_date?.split('T')[0]} to ${leaveRequest.end_date?.split('T')[0]})` : 'this leave request';
     
     showConfirmDelete(
       leaveDetails,
       async () => {
         try {
           await deleteLeaveRequest(id);
-          fetchLeaveRequests(page, searchEmployee);
-          showSuccess("Leave request deleted successfully!");
+          toast('Leave request cancelled!', {
+            duration: 4000,
+            icon: '🗑️',
+            style: {
+              background: '#F97316',
+              color: '#fff',
+              fontWeight: '600',
+              borderRadius: '10px',
+              padding: '16px 24px',
+            }
+          });
+          // Reset search and page
+          setSearchQuery('');
+          setPage(1);
+          await fetchLeaveRequests();
         } catch (error) {
-          showError("Failed to delete leave request. Please try again.");
+          toast.error('Failed to process request. Try again.', {
+            duration: 4000,
+            style: {
+              background: '#EF4444',
+              color: '#fff',
+              fontWeight: '600',
+              borderRadius: '10px',
+              padding: '16px 24px',
+            }
+          });
         }
       },
-      `Leave ID: ${id}\nEmployee: ${leaveRequest?.emp_name || `Employee ${leaveRequest?.emp_id}`}\nType: ${leaveRequest?.leave_type || 'N/A'}\nPeriod: ${leaveRequest?.start_date?.split('T')[0] || 'N/A'} to ${leaveRequest?.end_date?.split('T')[0] || 'N/A'}\nReason: ${leaveRequest?.reason || 'N/A'}\nStatus: ${leaveRequest?.approval_status || 'N/A'}`
+      `Leave ID: ${id}\nEmployee: ${leaveRequest?.first_name || ''} ${leaveRequest?.last_name || ''}\nType: ${leaveRequest?.leave_type || 'N/A'}\nPeriod: ${leaveRequest?.start_date?.split('T')[0] || 'N/A'} to ${leaveRequest?.end_date?.split('T')[0] || 'N/A'}\nReason: ${leaveRequest?.reason || 'N/A'}\nStatus: ${leaveRequest?.approval_status || 'N/A'}`
     );
   };
 
@@ -110,18 +198,63 @@ function LeavePage() {
   const handleApproveLeave = async (id) => {
     try {
       await approveLeaveRequest(id, 1); // Assuming manager ID is 1 for now
-      fetchLeaveRequests(page, searchEmployee);
+      toast.success('Leave request approved!', {
+        duration: 4000,
+        style: {
+          background: '#10B981',
+          color: '#fff',
+          fontWeight: '600',
+          borderRadius: '10px',
+          padding: '16px 24px',
+        }
+      });
+      // Reset search and page
+      setSearchQuery('');
+      setPage(1);
+      await fetchLeaveRequests();
     } catch (error) {
-      setError("Approval failed");
+      toast.error('Failed to process request. Try again.', {
+        duration: 4000,
+        style: {
+          background: '#EF4444',
+          color: '#fff',
+          fontWeight: '600',
+          borderRadius: '10px',
+          padding: '16px 24px',
+        }
+      });
     }
   };
 
   const handleRejectLeave = async (id) => {
     try {
       await rejectLeaveRequest(id, 1); // Assuming manager ID is 1 for now
-      fetchLeaveRequests(page, searchEmployee);
+      toast('Leave request rejected!', {
+        duration: 4000,
+        icon: '❌',
+        style: {
+          background: '#F97316',
+          color: '#fff',
+          fontWeight: '600',
+          borderRadius: '10px',
+          padding: '16px 24px',
+        }
+      });
+      // Reset search and page
+      setSearchQuery('');
+      setPage(1);
+      await fetchLeaveRequests();
     } catch (error) {
-      setError("Rejection failed");
+      toast.error('Failed to process request. Try again.', {
+        duration: 4000,
+        style: {
+          background: '#EF4444',
+          color: '#fff',
+          fontWeight: '600',
+          borderRadius: '10px',
+          padding: '16px 24px',
+        }
+      });
     }
   };
 
@@ -134,38 +267,21 @@ function LeavePage() {
           onSave={handleSaveLeave}
           editingLeave={editingLeave}
           employees={employees}
+          canManageAll={canManageAll}
         />
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex gap-4 items-center mb-4">
-          <div className="relative">
-            <select
-              value={searchEmployee}
-              onChange={(e) => {
-                setSearchEmployee(e.target.value);
-                setPage(1);
-              }}
-              className="border px-3 py-2 pr-8 rounded-md w-48 appearance-none bg-white"
-            >
-              <option value="">Search Employee 🔍</option>
-              {employees.map((emp) => (
-                <option key={emp.emp_id} value={emp.emp_id}>
-                  {emp.first_name} {emp.last_name}
-                </option>
-              ))}
-            </select>
+        {/* SEARCH BAR */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-sm text-gray-600">
+            Showing {filteredLeaveRequests.length} of {allLeaveRequests.length} leave requests
           </div>
-          
-          <button
-            onClick={() => {
-              setSearchEmployee("");
-              setPage(1);
-            }}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-          >
-            Clear
-          </button>
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by employee name, leave type or status..."
+          />
         </div>
 
         {loading ? (
@@ -174,20 +290,46 @@ function LeavePage() {
           <div className="text-center py-8 text-red-500">{error}</div>
         ) : (
           <>
-            <LeaveTable
-              leaveRequests={leaveRequests}
-              employees={employees}
-              onEdit={handleEditLeave}
-              onDelete={handleDeleteLeave}
-              onApprove={handleApproveLeave}
-              onReject={handleRejectLeave}
-            />
-            
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
+            {filteredLeaveRequests.length === 0 && searchQuery && (
+              <div style={{
+                textAlign: 'center',
+                padding: '48px',
+                color: '#6B7280'
+              }}>
+                <p style={{ fontSize: '16px' }}>
+                  🔍 No results found for "{searchQuery}"
+                </p>
+                <p style={{ fontSize: '14px' }}>
+                  Try different keywords or clear all filters
+                </p>
+                <button 
+                  onClick={clearFilters}
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+
+            {filteredLeaveRequests.length > 0 && (
+              <>
+                <LeaveTable
+                  leaveRequests={paginatedLeaveRequests}
+                  employees={employees}
+                  onEdit={handleEditLeave}
+                  onDelete={handleDeleteLeave}
+                  onApprove={handleApproveLeave}
+                  onReject={handleRejectLeave}
+                  canManageAll={canManageAll}
+                />
+                
+                <Pagination
+                  page={page}
+                  totalPages={totalPagesFiltered}
+                  onPageChange={setPage}
+                />
+              </>
+            )}
           </>
         )}
       </div>

@@ -1,7 +1,15 @@
+import { useAuth } from '../context/AuthContext';
+
 function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onReject }) {
-  const getEmployeeName = (empId) => {
-    const employee = employees.find(emp => emp.emp_id === empId);
-    return employee ? `${employee.first_name} ${employee.last_name}` : `ID: ${empId}`;
+  const { isAdmin, isHR, isManager, isUser } = useAuth();
+  const canApprove = isAdmin() || isHR() || isManager();
+
+  const getEmployeeName = (empId, item) => {
+    return item.first_name && item.last_name 
+      ? `${item.first_name} ${item.last_name}` 
+      : item.employee_name 
+      ? item.employee_name
+      : `Employee #${item.emp_id}`;
   };
 
   const getStatusBadge = (status) => {
@@ -51,7 +59,7 @@ function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onR
           {leaveRequests.map((request) => (
             <tr key={request.leave_id} className="border-t hover:bg-gray-50">
               <td className="px-4 py-3">
-                {getEmployeeName(request.emp_id)}
+                {getEmployeeName(request.emp_id, request)}
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -77,37 +85,51 @@ function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onR
                 {request.requested_at?.split("T")[0]}
               </td>
               <td className="px-4 py-3 space-x-2">
-                {request.approval_status === 'Pending' && (
-                  <>
-                    <button
-                      onClick={() => onApprove(request.leave_id)}
-                      className="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 text-sm"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => onReject(request.leave_id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 text-sm"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-                
-                <button
-                  onClick={() => onEdit(request)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 text-sm"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => onDelete(request.leave_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 text-sm"
-                >
-                  Delete
-                </button>
-              </td>
+  {request.approval_status === 'Pending' ? (
+    <>
+      {canApprove && (
+        <button
+          onClick={() => onApprove(request.leave_id)}
+          className="bg-green-500 text-white px-3 py-1 rounded-md 
+            hover:bg-green-600 text-sm"
+        >
+          Approve
+        </button>
+      )}
+      {canApprove && (
+        <button
+          onClick={() => onReject(request.leave_id)}
+          className="bg-red-500 text-white px-3 py-1 rounded-md 
+            hover:bg-red-600 text-sm"
+        >
+          Reject
+        </button>
+      )}
+      {(isAdmin() || isHR() || isUser()) && (
+        <button
+          onClick={() => onEdit(request)}
+          className="bg-blue-500 text-white px-3 py-1 rounded-md 
+            hover:bg-blue-600 text-sm"
+        >
+          Edit
+        </button>
+      )}
+      {(isAdmin() || isHR() || isUser()) && (
+        <button
+          onClick={() => onDelete(request.leave_id)}
+          className="bg-red-500 text-white px-3 py-1 rounded-md 
+            hover:bg-red-600 text-sm"
+        >
+          Delete
+        </button>
+      )}
+    </>
+  ) : (
+    <span className="text-gray-400 text-sm italic">
+      No actions available
+    </span>
+  )}
+</td>
             </tr>
           ))}
         </tbody>

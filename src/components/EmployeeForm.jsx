@@ -1,14 +1,61 @@
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import axiosInstance from "../api/axiosInstance";
 
 function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
 
   const [formData, setFormData] = useState({
-    employee_code: "",
     first_name: "",
     last_name: "",
     email: "",
-    hire_date: ""
+    phone: "",
+    hire_date: "",
+    status: "Active",
+    dept_id: "",
+    position_id: "",
+    manager_id: ""
   });
+
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [departments, setDepartments] = useState([]);
+  const [positions, setPositions] = useState([]);
+  const [managers, setManagers] = useState([]);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true);
+
+  // ===============================
+  // FETCH DROPDOWN DATA
+  // ===============================
+  useEffect(() => {
+    const fetchDropdowns = async () => {
+      try {
+        setLoadingDropdowns(true);
+        console.log("Fetching dropdown data...");
+        
+        const [deptRes, posRes, mgrRes] = await Promise.all([
+          axiosInstance.get('/departments'),
+          axiosInstance.get('/positions'),
+          axiosInstance.get('/employees/managers')
+        ]);
+        
+        console.log("Departments response:", deptRes.data);
+        console.log("Positions response:", posRes.data);
+        console.log("Managers response:", mgrRes.data);
+        
+        setDepartments(Array.isArray(deptRes.data.data) ? deptRes.data.data : deptRes.data);
+        setPositions(Array.isArray(posRes.data.data) ? posRes.data.data : posRes.data);
+        setManagers(Array.isArray(mgrRes.data.data) ? mgrRes.data.data : mgrRes.data);
+        
+      } catch (error) {
+        console.error("Dropdown fetch error:", error);
+        // Continue without dropdown data - form will still work
+      } finally {
+        setLoadingDropdowns(false);
+      }
+    };
+
+    fetchDropdowns();
+  }, []);
 
   // ===============================
   // AUTO FILL WHEN EDITING
@@ -16,25 +63,104 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
   useEffect(() => {
     if (editingEmployee) {
       setFormData({
-        employee_code: editingEmployee.employee_code || "",
         first_name: editingEmployee.first_name || "",
         last_name: editingEmployee.last_name || "",
         email: editingEmployee.email || "",
+        phone: editingEmployee.phone || "",
         hire_date: editingEmployee.hire_date
           ? editingEmployee.hire_date.split("T")[0]
-          : ""
+          : "",
+        status: editingEmployee.status || "Active",
+        dept_id: editingEmployee.dept_id?.toString() || "",
+        position_id: editingEmployee.position_id?.toString() || "",
+        manager_id: editingEmployee.manager_id?.toString() || ""
       });
+      setErrors({});
     }
   }, [editingEmployee]);
+
+  // ===============================
+  // VALIDATE FORM
+  // ===============================
+  const validateForm = () => {
+    const newErrors = {};
+
+    // First Name validation
+    if (!formData.first_name.trim()) {
+      newErrors.first_name = "First name is required";
+    } else if (formData.first_name.trim().length < 2) {
+      newErrors.first_name = "First name must be at least 2 characters";
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.first_name.trim())) {
+      newErrors.first_name = "First name can only contain letters";
+    }
+
+    // Last Name validation
+    if (!formData.last_name.trim()) {
+      newErrors.last_name = "Last name is required";
+    } else if (formData.last_name.trim().length < 2) {
+      newErrors.last_name = "Last name must be at least 2 characters";
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.last_name.trim())) {
+      newErrors.last_name = "Last name can only contain letters";
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else {
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = "Please enter a valid email address";
+      }
+    }
+
+    // Phone validation (optional but if provided must be valid)
+    if (formData.phone && formData.phone.trim()) {
+      const phoneRegex = /^\+?[0-9\s\-\(\)]+$/;
+      if (!phoneRegex.test(formData.phone.trim())) {
+        newErrors.phone = "Phone can only contain numbers, spaces, hyphens, and parentheses";
+      }
+    }
+
+    // Hire Date validation
+    if (!formData.hire_date) {
+      newErrors.hire_date = "Hire date is required";
+    } else {
+      const hireDateObj = new Date(formData.hire_date);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999); // Set to END of today so today is always valid
+      
+      if (hireDateObj > today) {
+        newErrors.hire_date = "Hire date cannot be in the future";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   // ===============================
   // HANDLE INPUT CHANGE
   // ===============================
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Prevent employee_code from being added to formData (it's readonly)
+    if (name === 'employee_code') {
+      return;
+    }
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ""
+      });
+    }
   };
 
   // ===============================
@@ -43,74 +169,375 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    await onEmployeeAdded(formData);
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
 
-    // Reset form after save
+    // Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Prepare data for API
+      const submissionData = {
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim() || null,
+        hire_date: formData.hire_date,
+        status: formData.status,
+        dept_id: formData.dept_id ? parseInt(formData.dept_id) : null,
+        position_id: formData.position_id ? parseInt(formData.position_id) : null,
+        manager_id: formData.manager_id ? parseInt(formData.manager_id) : null
+      };
+
+      // DEBUG: Log what's being sent
+      console.log('SUBMISSION DATA:', submissionData);
+
+      await onEmployeeAdded(submissionData);
+
+      // Reset form after save
+      setFormData({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        hire_date: "",
+        status: "Active",
+        dept_id: "",
+        position_id: "",
+        manager_id: ""
+      });
+      setErrors({});
+
+    } catch (error) {
+      console.error("Save failed:", error);
+      
+      // Handle specific error messages
+      const errorMessage = error.response?.data?.message || "Failed to save employee. Please try again.";
+      
+      // Special handling for email already exists error
+      if (errorMessage === "Email already exists") {
+        toast.error('This email is already registered. Use a different email.');
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ===============================
+  // RESET FORM
+  // ===============================
+  const resetForm = () => {
     setFormData({
-      employee_code: "",
       first_name: "",
       last_name: "",
       email: "",
-      hire_date: ""
+      phone: "",
+      hire_date: "",
+      status: "Active",
+      dept_id: "",
+      position_id: "",
+      manager_id: ""
     });
+    setErrors({});
+  };
+
+  // ===============================
+  // CANCEL FORM
+  // ===============================
+  const handleCancel = () => {
+    resetForm();
+    if (editingEmployee) {
+      // Signal to parent that editing is cancelled
+      onEmployeeAdded(null);
+    }
   };
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">
+      <h3 className="text-lg font-semibold mb-6">
         {editingEmployee ? "Edit Employee" : "Add Employee"}
       </h3>
 
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-4 gap-4"
-      >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* SECTION 1 — Personal Information */}
+        <div>
+          <h4 className="text-md font-medium text-gray-700 mb-4 pb-2 border-b">Personal Information</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Employee Code (Readonly in Edit Mode) */}
+            {editingEmployee && (
+              <div>
+                <label htmlFor="employee_code" className="block text-sm font-medium text-gray-700 mb-1">
+                  Employee Code
+                  <span className="text-xs text-gray-500 ml-2">(cannot be changed)</span>
+                </label>
+                <input
+                  type="text"
+                  id="employee_code"
+                  name="employee_code"
+                  value={editingEmployee.employee_code || ''}
+                  disabled
+                  style={{ 
+                    background: '#f3f4f6', 
+                    cursor: 'not-allowed',
+                    borderColor: '#d1d5db'
+                  }}
+                  className="w-full border rounded-md px-3 py-2 text-gray-600"
+                  readOnly
+                />
+              </div>
+            )}
+            
+            {/* First Name */}
+            <div>
+              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="first_name"
+                name="first_name"
+                placeholder="Enter first name"
+                value={formData.first_name}
+                onChange={handleChange}
+                required
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.first_name ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.first_name && (
+                <p className="text-red-500 text-sm mt-1">{errors.first_name}</p>
+              )}
+            </div>
 
-        <input
-          type="text"
-          name="first_name"
-          placeholder="First Name"
-          value={formData.first_name}
-          onChange={handleChange}
-          required
-          className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+            {/* Last Name */}
+            <div>
+              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="last_name"
+                name="last_name"
+                placeholder="Enter last name"
+                value={formData.last_name}
+                onChange={handleChange}
+                required
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.last_name ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.last_name && (
+                <p className="text-red-500 text-sm mt-1">{errors.last_name}</p>
+              )}
+            </div>
 
-        <input
-          type="text"
-          name="last_name"
-          placeholder="Last Name"
-          value={formData.last_name}
-          onChange={handleChange}
-          required
-          className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="Enter email address"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.email ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              )}
+            </div>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+            {/* Phone */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Phone
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                placeholder="+91-XXXXXXXXXX"
+                value={formData.phone}
+                onChange={handleChange}
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.phone ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+              )}
+            </div>
+          </div>
+        </div>
 
-        <input
-          type="date"
-          name="hire_date"
-          value={formData.hire_date}
-          onChange={handleChange}
-          required
-          className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        {/* SECTION 2 — Employment Details */}
+        <div>
+          <h4 className="text-md font-medium text-gray-700 mb-4 pb-2 border-b">Employment Details</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Hire Date */}
+            <div>
+              <label htmlFor="hire_date" className="block text-sm font-medium text-gray-700 mb-1">
+                Hire Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                id="hire_date"
+                name="hire_date"
+                value={formData.hire_date}
+                onChange={handleChange}
+                required
+                max={new Date().toISOString().split('T')[0]}
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.hire_date ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.hire_date && (
+                <p className="text-red-500 text-sm mt-1">{errors.hire_date}</p>
+              )}
+            </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md md:col-span-4"
-        >
-          {editingEmployee ? "Update Employee" : "Add Employee"}
-        </button>
+            {/* Status */}
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                Status <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                required
+                className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+              >
+                <option value="Active">Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Resigned">Resigned</option>
+              </select>
+            </div>
+
+            {/* Department */}
+            <div>
+              <label htmlFor="dept_id" className="block text-sm font-medium text-gray-700 mb-1">
+                Department
+              </label>
+              <select
+                id="dept_id"
+                name="dept_id"
+                value={formData.dept_id ? parseInt(formData.dept_id) : ''}
+                onChange={handleChange}
+                disabled={loadingDropdowns}
+                className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 disabled:opacity-50"
+              >
+                <option value="">
+                  {loadingDropdowns ? 'Loading...' : 'Select Department...'}
+                </option>
+                {departments.map(dept => (
+                  <option key={dept.dept_id} value={dept.dept_id}>
+                    {dept.dept_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Position */}
+            <div>
+              <label htmlFor="position_id" className="block text-sm font-medium text-gray-700 mb-1">
+                Position
+              </label>
+              <select
+                id="position_id"
+                name="position_id"
+                value={formData.position_id ? parseInt(formData.position_id) : ''}
+                onChange={handleChange}
+                disabled={loadingDropdowns}
+                className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 disabled:opacity-50"
+              >
+                <option value="">
+                  {loadingDropdowns ? 'Loading...' : 'Select Position...'}
+                </option>
+                {positions.map(position => (
+                  <option key={position.position_id} value={position.position_id}>
+                    {position.position_title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Manager */}
+            <div>
+              <label htmlFor="manager_id" className="block text-sm font-medium text-gray-700 mb-1">
+                Manager
+              </label>
+              <select
+                id="manager_id"
+                name="manager_id"
+                value={formData.manager_id ? parseInt(formData.manager_id) : ''}
+                onChange={handleChange}
+                disabled={loadingDropdowns}
+                className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 disabled:opacity-50"
+              >
+                <option value="">
+                  {loadingDropdowns ? 'Loading...' : 'Select Manager...'}
+                </option>
+                {managers
+                  .filter(m => m.emp_id !== parseInt(editingEmployee?.emp_id || '0'))
+                  .map(manager => (
+                    <option key={manager.emp_id} value={manager.emp_id}>
+                      {manager.first_name} {manager.last_name} ({manager.employee_code})
+                    </option>
+                  ))
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* ACTION BUTTONS */}
+        <div className="flex gap-3 pt-4 border-t">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {editingEmployee ? "Updating..." : "Adding..."}
+              </>
+            ) : (
+              <span>{editingEmployee ? "Update Employee" : "Add Employee"}</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={isSubmitting}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
 
       </form>
     </div>

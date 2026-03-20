@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 import { getEmployees } from "../api/employeeService";
 import { getProjects } from "../api/projectService";
+import toast from "react-hot-toast";
+import axiosInstance from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 
-function EmployeeProjectForm({ onSave, editingAssignment }) {
+function EmployeeProjectForm({ onSave, editingAssignment, onCancel }) {
+  const { isManager } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
 
   const [formData, setFormData] = useState({
     emp_id: "",
@@ -22,25 +27,49 @@ function EmployeeProjectForm({ onSave, editingAssignment }) {
   useEffect(() => {
     if (editingAssignment) {
       setFormData({
-        emp_id: editingAssignment.emp_id || "",
-        project_id: editingAssignment.project_id || "",
+        emp_id: editingAssignment.emp_id ? parseInt(editingAssignment.emp_id) : "",
+        project_id: editingAssignment.project_id ? parseInt(editingAssignment.project_id) : "",
         role_name: editingAssignment.role_name || "",
         allocation_percent: editingAssignment.allocation_percent || 100,
         assigned_on: editingAssignment.assigned_on?.split("T")[0] || "",
         released_on: editingAssignment.released_on?.split("T")[0] || ""
+      });
+    } else {
+      setFormData({
+        emp_id: "",
+        project_id: "",
+        role_name: "",
+        allocation_percent: 100,
+        assigned_on: "",
+        released_on: ""
       });
     }
   }, [editingAssignment]);
 
   const fetchDropdowns = async () => {
     try {
-      const empRes = await getEmployees();
+      setLoadingEmployees(true);
+      let employeeList = [];
+      
+      if (isManager()) {
+        const empRes = await axiosInstance.get('/employees/team');
+        employeeList = empRes.data.data || [];
+      } else {
+        const empRes = await axiosInstance.get('/employees/active');
+        employeeList = empRes.data.data || empRes.data || [];
+      }
+      
       const projRes = await getProjects();
-
-      setEmployees(empRes.data.data || []);
-      setProjects(projRes.data.data || []);
+      const projectList = projRes.data.data || [];
+      
+      setEmployees(employeeList);
+      setProjects(projectList);
+      
     } catch (error) {
-      console.error("Dropdown fetch failed");
+      console.error("Dropdown fetch failed:", error);
+      toast.error('Failed to load data');
+    } finally {
+      setLoadingEmployees(false);
     }
   };
 
@@ -64,6 +93,8 @@ function EmployeeProjectForm({ onSave, editingAssignment }) {
       assigned_on: "",
       released_on: ""
     });
+
+    if (onCancel) onCancel();
   };
 
   return (
@@ -84,10 +115,14 @@ function EmployeeProjectForm({ onSave, editingAssignment }) {
           required
           className="border rounded px-3 py-2"
         >
-          <option value="">Select Employee</option>
+          <option value="">
+            {loadingEmployees ? 'Loading employees...' : 'Select Employee...'}
+          </option>
           {employees.map((emp) => (
             <option key={emp.emp_id} value={emp.emp_id}>
               {emp.first_name} {emp.last_name}
+              {' '}({emp.employee_code}
+              {emp.position_title ? ' - ' + emp.position_title : ''})
             </option>
           ))}
         </select>

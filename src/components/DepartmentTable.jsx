@@ -19,10 +19,20 @@ function DepartmentTable({ departments, onEdit, onDelete }) {
             <tr key={dept.dept_id} className="border-t hover:bg-gray-50">
               <td className="px-4 py-3">{dept.dept_id}</td>
               <td className="px-4 py-3">{dept.dept_name}</td>
-              <td className="px-4 py-3">{dept.location}</td>
+              <td className="px-4 py-3">{dept.location || 'Not specified'}</td>
 
-              <td className="px-4 py-3">
-                <CurrencyDisplay amount={dept.budget} />
+              <td 
+                className="px-4 py-3" 
+                style={{ color: '#10B981', fontWeight: '600' }}
+              >
+                {dept.budget 
+                  ? `$${parseFloat(dept.budget)
+                      .toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}`
+                  : '$0.00'
+                }
               </td>
 
               <td className="px-4 py-3 space-x-2">

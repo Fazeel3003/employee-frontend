@@ -1,14 +1,7 @@
 import axiosInstance from "./axiosInstance";
 
-export const getEmployeeProjects = (page = 1, limit = 10, search = "") => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString()
-  });
-  
-  if (search) params.append('search', search);
-  
-  return axiosInstance.get(`/employee-projects?${params.toString()}`);
+export const getEmployeeProjects = async () => {
+  return axiosInstance.get('/employee-projects');
 };
 
 export const createEmployeeProject = (data) => {
@@ -16,6 +9,7 @@ export const createEmployeeProject = (data) => {
 };
 
 export const updateEmployeeProject = (id, data) => {
+  console.log('UPDATE:', id, data);
   return axiosInstance.put(`/employee-projects/${id}`, data);
 };
 

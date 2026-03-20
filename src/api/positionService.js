@@ -1,14 +1,8 @@
 import axiosInstance from "./axiosInstance";
 
-export const getPositions = (page = 1, limit = 10, search = "") => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString()
-  });
-  
-  if (search) params.append('search', search);
-  
-  return axiosInstance.get(`/positions?${params.toString()}`);
+export const getPositions = async () => {
+  const response = await axiosInstance.get('/positions');
+  return response.data;
 };
 
 export const createPosition = (data) => {

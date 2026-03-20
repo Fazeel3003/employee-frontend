@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import axiosInstance from "../api/axiosInstance";
 
-function AttendanceForm({ onSave, editingAttendance, employees }) {
+function AttendanceForm({ onSave, editingAttendance, employees, canManageAll }) {
 
   const [formData, setFormData] = useState({
     emp_id: "",
@@ -9,6 +10,7 @@ function AttendanceForm({ onSave, editingAttendance, employees }) {
     check_out: "",
     attendance_status: "Present"
   });
+  const [userEmpId, setUserEmpId] = useState(null);
 
   useEffect(() => {
     if (editingAttendance) {
@@ -22,6 +24,14 @@ function AttendanceForm({ onSave, editingAttendance, employees }) {
     }
   }, [editingAttendance]);
 
+  useEffect(() => {
+    if (!canManageAll) {
+      axiosInstance.get('/employees/me')
+        .then(res => setUserEmpId(res.data.data?.emp_id))
+        .catch(err => console.error('Could not fetch emp_id', err));
+    }
+  }, [canManageAll]);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -31,7 +41,8 @@ function AttendanceForm({ onSave, editingAttendance, employees }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    const submissionData = canManageAll ? formData : { ...formData, emp_id: userEmpId };
+    onSave(submissionData);
 
     setFormData({
       emp_id: "",
@@ -54,20 +65,22 @@ function AttendanceForm({ onSave, editingAttendance, employees }) {
         className="grid grid-cols-1 md:grid-cols-5 gap-4"
       >
 
-        <select
-          name="emp_id"
-          value={formData.emp_id}
-          onChange={handleChange}
-          required
-          className="border px-3 py-2 rounded-md appearance-none bg-white"
-        >
-          <option value="">Employee ▼</option>
-          {employees.map((emp) => (
-            <option key={emp.emp_id} value={emp.emp_id}>
-              {emp.first_name} {emp.last_name}
-            </option>
-          ))}
-        </select>
+        {canManageAll && (
+          <select
+            name="emp_id"
+            value={formData.emp_id}
+            onChange={handleChange}
+            required
+            className="border px-3 py-2 rounded-md appearance-none bg-white"
+          >
+            <option value="">Employee ▼</option>
+            {employees.map((emp) => (
+              <option key={emp.emp_id} value={emp.emp_id}>
+                {emp.first_name} {emp.last_name}
+              </option>
+            ))}
+          </select>
+        )}
 
         <input
           type="date"

@@ -1,15 +1,8 @@
 import axiosInstance from "./axiosInstance";
 
-export const getAttendance = (page = 1, limit = 10, empId = "", date = "") => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString()
-  });
-  
-  if (empId) params.append('emp_id', empId);
-  if (date) params.append('attendance_date', date);
-  
-  return axiosInstance.get(`/attendance?${params.toString()}`);
+export const getAttendance = async () => {
+  const response = await axiosInstance.get('/attendance');
+  return response.data;
 };
 
 export const createAttendance = (data) => {

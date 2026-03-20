@@ -157,17 +157,24 @@ export const AuthProvider = ({ children }) => {
 
       const response = await axiosInstance.get(`${API_URL}/auth/me`);
       
-      if (response.data.success && response.data.data) {
+      if (response.data.success) {
         dispatch({ type: AUTH_ACTIONS.LOAD_USER_SUCCESS, payload: response.data.data });
       } else {
         throw new Error('Failed to load user profile');
       }
     } catch (error) {
       console.error('Load user error:', error);
-      localStorage.removeItem(import.meta.env.VITE_TOKEN_STORAGE_KEY || 'ems_token');
-      localStorage.removeItem(import.meta.env.VITE_USER_STORAGE_KEY || 'ems_user');
-      setupAxiosInterceptors(null);
-      dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: 'Session expired' });
+      
+      // ONLY clear token on 401/403 (auth errors), NOT on 500/network errors!
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem(import.meta.env.VITE_TOKEN_STORAGE_KEY || 'ems_token');
+        localStorage.removeItem(import.meta.env.VITE_USER_STORAGE_KEY || 'ems_user');
+        setupAxiosInterceptors(null);
+        dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: 'Session expired' });
+      } else {
+        // For 500, network errors, etc - keep user logged in!
+        dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: null });
+      }
     }
   }, []);
 
@@ -289,44 +296,6 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is HR
   const isHR = useCallback(() => hasRole('hr'), [hasRole]);
-
-  // Setup axios interceptors for token refresh
-  useEffect(() => {
-    // Request interceptor
-    const requestInterceptor = axiosInstance.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem(import.meta.env.VITE_TOKEN_STORAGE_KEY || 'ems_token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
-
-    // Response interceptor for 401 handling
-    const responseInterceptor = axiosInstance.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Check if logout is already in progress to prevent infinite loop
-          if (!state.isLoggingOut) {
-            // Token expired or invalid
-            logout();
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    // Cleanup interceptors
-    return () => {
-      axiosInstance.interceptors.request.eject(requestInterceptor);
-      axiosInstance.interceptors.response.eject(responseInterceptor);
-    };
-  }, []);
 
   // Load user on app start
   useEffect(() => {

@@ -12,6 +12,14 @@ function PositionForm({ onSave, editingPosition }) {
   useEffect(() => {
     if (editingPosition) {
       setFormData(editingPosition);
+    } else {
+      // Reset form when not editing
+      setFormData({
+        position_title: "",
+        min_salary: "",
+        max_salary: "",
+        dept_id: ""
+      });
     }
   }, [editingPosition]);
 
@@ -22,9 +30,15 @@ function PositionForm({ onSave, editingPosition }) {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
+    await onSave(formData);
+    setFormData({
+      position_title: "",
+      min_salary: "",
+      max_salary: "",
+      dept_id: ""
+    });
   };
 
   return (

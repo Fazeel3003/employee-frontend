@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import axiosInstance from "../api/axiosInstance";
 
-function LeaveForm({ onSave, editingLeave, employees }) {
+function LeaveForm({ onSave, editingLeave, employees, canManageAll }) {
   const [formData, setFormData] = useState({
     emp_id: "",
     leave_type: "Sick",
@@ -8,6 +9,7 @@ function LeaveForm({ onSave, editingLeave, employees }) {
     end_date: "",
     reason: ""
   });
+  const [userEmpId, setUserEmpId] = useState(null);
 
   const leaveTypes = [
     { value: "Sick", label: "Sick Leave", icon: "🤒" },
@@ -31,6 +33,14 @@ function LeaveForm({ onSave, editingLeave, employees }) {
     }
   }, [editingLeave]);
 
+  useEffect(() => {
+    if (!canManageAll) {
+      axiosInstance.get('/employees/me')
+        .then(res => setUserEmpId(res.data.data?.emp_id))
+        .catch(err => console.error('Could not fetch emp_id', err));
+    }
+  }, [canManageAll]);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -40,7 +50,8 @@ function LeaveForm({ onSave, editingLeave, employees }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    const submissionData = canManageAll ? formData : { ...formData, emp_id: userEmpId };
+    onSave(submissionData);
 
     // Reset form
     setFormData({
@@ -82,6 +93,7 @@ function LeaveForm({ onSave, editingLeave, employees }) {
         onSubmit={handleSubmit}
         className="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
+        {canManageAll && (
         <select
           name="emp_id"
           value={formData.emp_id}
@@ -96,6 +108,7 @@ function LeaveForm({ onSave, editingLeave, employees }) {
             </option>
           ))}
         </select>
+        )}
 
         <select
           name="leave_type"

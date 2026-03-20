@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
 import DepartmentTable from "../components/DepartmentTable";
 import DepartmentForm from "../components/DepartmentForm";
+import SearchBar from "../components/SearchBar";
+import Pagination from "../components/Pagination";
 import { useModal } from "../context/ModalContext";
-import { formatCurrency } from "../utils/currencyFormatter";
 import {
   getDepartments,
   createDepartment,
@@ -10,144 +12,163 @@ import {
   deleteDepartment
 } from "../api/departmentService";
 
-// Custom hook for department search functionality
-const useDepartmentSearch = () => {
+function DepartmentsPage() {
   const [allDepartments, setAllDepartments] = useState([]);
-  const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingDepartment, setEditingDepartment] = useState(null);
-  const { showConfirmDelete, showSuccess, showError } = useModal();
+  const [page, setPage] = useState(1); 
+  const { showConfirmDelete } = useModal();
 
-  // Fetch all departments once
+  const itemsPerPage = 10;
+
+  // Fetch all departments
   const fetchDepartments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await getDepartments(1, 1000, ""); // Get all departments
-      
+      const response = await getDepartments(1, 1000, ""); // Fetch all for frontend filtering
+       console.log('FETCH DEPARTMENTS RESPONSE:', response.data); 
       if (!response?.data?.success) {
         throw new Error(response?.data?.message || "Invalid response from server");
       }
       
       const data = response.data.data || [];
       setAllDepartments(Array.isArray(data) ? data : []);
-      setFilteredDepartments(Array.isArray(data) ? data : []);
       
     } catch (err) {
       console.error("Department fetch error:", err);
       setError(err.message || "Failed to fetch departments");
       setAllDepartments([]);
-      setFilteredDepartments([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Filter departments based on search term
-  const filterDepartments = useCallback((term) => {
-    if (!term.trim()) {
-      setFilteredDepartments(allDepartments);
+  // Search filter logic
+  const filteredDepartments = allDepartments.filter(item => {
+    const query = searchQuery.toLowerCase();
+    return (
+      item.dept_name?.toLowerCase().includes(query) ||
+      item.location?.toLowerCase().includes(query)
+    );
+  });
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  // Pagination for filtered results
+  const totalPagesFiltered = Math.ceil(filteredDepartments.length / itemsPerPage);
+  const paginatedDepartments = filteredDepartments.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
+
+  // Save department
+  const handleSaveDepartment = useCallback(async (departmentData) => {
+    if (!departmentData) {
+      setEditingDepartment(null);
       return;
     }
 
-    const filtered = allDepartments.filter(dept => 
-      dept.dept_name?.toLowerCase().includes(term.toLowerCase()) ||
-      dept.location?.toLowerCase().includes(term.toLowerCase())
-    );
-    
-    setFilteredDepartments(filtered);
-  }, [allDepartments]);
-
-  // Handle search input changes
-  const handleSearch = useCallback((e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    filterDepartments(value);
-  }, [filterDepartments]);
-
-  // Clear search
-  const handleClearSearch = useCallback(() => {
-    setSearchTerm("");
-    setFilteredDepartments(allDepartments);
-  }, [allDepartments]);
-
-  // Handle CRUD operations
-  const handleSaveDepartment = useCallback(async (data) => {
     try {
-      setError(null);
       if (editingDepartment) {
-        await updateDepartment(editingDepartment.dept_id, data);
-        setEditingDepartment(null);
+        await updateDepartment(editingDepartment.dept_id, departmentData);
+        toast.success('Department updated successfully!', {
+          duration: 4000,
+          style: {
+            background: '#10B981',
+            color: '#fff',
+            fontWeight: '600',
+            borderRadius: '10px',
+            padding: '16px 24px',
+          }
+        });
       } else {
-        await createDepartment(data);
+        await createDepartment(departmentData);
+        toast.success('Department added successfully!', {
+          duration: 4000,
+          style: {
+            background: '#10B981',
+            color: '#fff',
+            fontWeight: '600',
+            borderRadius: '10px',
+            padding: '16px 24px',
+          }
+        });
       }
-      fetchDepartments(); // Refresh all departments
-    } catch (error) {
-      console.error("Save error:", error);
-      setError(error.message || "Save failed");
-    }
-  }, [fetchDepartments, editingDepartment]);
 
+      // Reset search and page
+      setSearchQuery('');
+      setPage(1);
+      await fetchDepartments();
+      setEditingDepartment(null);
+
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || "Failed to save department";
+      toast.error(errorMessage, {
+        duration: 4000,
+        style: {
+          background: '#EF4444',
+          color: '#fff',
+          fontWeight: '600',
+          borderRadius: '10px',
+          padding: '16px 24px',
+        }
+      });
+    }
+  }, [editingDepartment, fetchDepartments]);
+
+  // Delete department
   const handleDeleteDepartment = useCallback(async (id) => {
     const department = allDepartments.find(dept => dept.dept_id === id);
-    const departmentName = department?.dept_name || 'this department';
+    const departmentName = department ? department.dept_name : 'this department';
     
     showConfirmDelete(
       departmentName,
       async () => {
         try {
           await deleteDepartment(id);
-          fetchDepartments();
-          showSuccess("Department deleted successfully!");
-        } catch (error) {
-          showError("Failed to delete department. Please try again.");
+          toast('Department deleted!', {
+            duration: 4000,
+            icon: '🗑️',
+            style: {
+              background: '#F97316',
+              color: '#fff',
+              fontWeight: '600',
+              borderRadius: '10px',
+              padding: '16px 24px',
+            }
+          });
+          // Reset search and page
+          setSearchQuery('');
+          setPage(1);
+          await fetchDepartments();
+        } catch (err) {
+          const errorMessage = err.response?.data?.message || err.message || "Failed to delete department";
+          toast.error(errorMessage, {
+            duration: 4000,
+            style: {
+              background: '#EF4444',
+              color: '#fff',
+              fontWeight: '600',
+              borderRadius: '10px',
+              padding: '16px 24px',
+            }
+          });
         }
       },
-      `Department ID: ${id}\nName: ${departmentName}\nLocation: ${department?.location || 'N/A'}\nBudget: ${formatCurrency(department?.budget)}`
+      `Department ID: ${id}\nName: ${departmentName}\nLocation: ${department?.location || 'Not specified'}\nBudget: ${department?.budget ? '$' + parseFloat(department.budget).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '$0.00'}`
     );
-  }, [allDepartments, fetchDepartments, showConfirmDelete, showSuccess, showError]);
+  }, [allDepartments, fetchDepartments, showConfirmDelete]);
 
   const handleEditDepartment = useCallback((dept) => {
     setEditingDepartment(dept);
   }, []);
-
-  return {
-    // State
-    departments: filteredDepartments,
-    loading,
-    error,
-    searchTerm,
-    editingDepartment,
-    
-    // Actions
-    handleSearch,
-    handleClearSearch,
-    handleSaveDepartment,
-    handleDeleteDepartment,
-    handleEditDepartment,
-    setEditingDepartment,
-    fetchDepartments
-  };
-};
-
-function DepartmentsPage() {
-  const {
-    departments,
-    loading,
-    error,
-    searchTerm,
-    editingDepartment,
-    handleSearch,
-    handleClearSearch,
-    handleSaveDepartment,
-    handleDeleteDepartment,
-    handleEditDepartment,
-    setEditingDepartment,
-    fetchDepartments
-  } = useDepartmentSearch();
 
   // Initial load
   useEffect(() => {
@@ -166,76 +187,73 @@ function DepartmentsPage() {
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
-        {/* Enhanced Search Bar */}
-        <div className="mb-6">
-          <div className="flex gap-4 items-center">
-            <div className="flex-1 max-w-md">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={handleSearch}
-                placeholder="Search by department name or location..."
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                aria-label="Search departments"
-                disabled={loading}
-              />
-            </div>
-            <button
-              onClick={handleClearSearch}
-              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={loading}
-            >
-              Clear
-            </button>
+        {/* SEARCH BAR */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-sm text-gray-600">
+            Showing {filteredDepartments.length} of {allDepartments.length} departments
           </div>
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by department name or location..."
+          />
         </div>
 
-        {/* Enhanced State Display */}
-        <div className="min-h-[400px]">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-gray-600">Searching departments...</p>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <p className="text-red-600 font-medium mb-2">Error loading departments</p>
-              <p className="text-gray-600 text-sm mb-4">{error}</p>
-              <button
-                onClick={fetchDepartments}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              >
-                Try Again
-              </button>
-            </div>
-          ) : departments.length === 0 && searchTerm ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <p className="text-gray-600 font-medium mb-2">No departments found</p>
-              <p className="text-gray-500 text-sm mb-4">
-                Try adjusting your search terms or clear search to see all departments
-              </p>
-              <button
-                onClick={handleClearSearch}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-              >
-                Clear Search
-              </button>
-            </div>
-          ) : departments.length === 0 && !loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <p className="text-gray-600 font-medium mb-2">No departments yet</p>
-              <p className="text-gray-500 text-sm mb-4">
-                Get started by adding your first department
-              </p>
-            </div>
-          ) : (
-            <DepartmentTable
-              departments={departments}
-              onEdit={handleEditDepartment}
-              onDelete={handleDeleteDepartment}
-            />
-          )}
-        </div>
+        {/* STATE DISPLAY */}
+        {loading && (
+          <p className="text-gray-500">Loading departments...</p>
+        )}
+
+        {error && (
+          <p className="text-red-500">{error}</p>
+        )}
+
+        {!loading && !error && (
+          <>
+            {filteredDepartments.length === 0 && searchQuery && (
+              <div style={{
+                textAlign: 'center',
+                padding: '48px',
+                color: '#6B7280'
+              }}>
+                <p style={{ fontSize: '16px' }}>
+                  🔍 No results found for "{searchQuery}"
+                </p>
+                <p style={{ fontSize: '14px' }}>
+                  Try different keywords or clear the search
+                </p>
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Clear Search
+                </button>
+              </div>
+            )}
+
+            {filteredDepartments.length > 0 ? (
+              <>
+                <DepartmentTable
+                  departments={paginatedDepartments}
+                  onDelete={handleDeleteDepartment}
+                  onEdit={handleEditDepartment}
+                />
+
+                <Pagination
+                  page={page}
+                  totalPages={totalPagesFiltered}
+                  onPageChange={setPage}
+                />
+              </>
+            ) : (
+              !searchQuery && !loading && (
+                <p className="text-center py-8 text-gray-500">
+                  No departments found. Add one above.
+                </p>
+              )
+            )}
+          </>
+        )}
       </div>
     </div>
   );

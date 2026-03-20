@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ModalProvider } from "./context/ModalContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
+import { Toaster } from "react-hot-toast";
 import Layout from "./layout/Layout";
 import DashboardPage from "./pages/DashboardPage";
 import EmployeesPage from "./pages/EmployeesPage";
@@ -43,6 +44,7 @@ function App() {
         <ToastProvider>
           <Router>
             <ModalManager />
+            <Toaster position="top-right" />
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -53,7 +55,7 @@ function App() {
               {/* Protected Routes */}
               <Route path="/" element={
               <ProtectedRoute>
-                <Layout>
+                <Layout> 
                   <DashboardPage />
                 </Layout>
               </ProtectedRoute>
@@ -66,87 +68,91 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Admin Only Routes */}
+            {/* Admin, HR, Manager Routes */}
             <Route path="/employees" element={
-              <AdminRoute>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
                 <Layout>
                   <EmployeesPage />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             } />
             <Route path="/employees/add" element={
-              <AdminRoute>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
                 <Layout>
                   <EmployeesPage />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             } />
             <Route path="/department" element={
-              <AdminRoute>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
                 <Layout>
                   <DepartmentPage />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             } />
             <Route path="/departments" element={
-              <AdminRoute>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
                 <Layout>
                   <DepartmentPage />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             } />
             <Route path="/positions" element={
-              <AdminRoute>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
                 <Layout>
                   <PositionsPage />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             } />
 
-            {/* Manager & Admin Routes */}
+            {/* Admin, HR, Manager Routes */}
             <Route path="/projects" element={
-              <ManagerRoute>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
                 <Layout>
                   <ProjectsPage />
                 </Layout>
-              </ManagerRoute>
+              </ProtectedRoute>
             } />
             <Route path="/projects/create" element={
-              <ManagerRoute>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
                 <Layout>
                   <ProjectsPage />
                 </Layout>
-              </ManagerRoute>
-            } />
-            <Route path="/attendance" element={
-              <ManagerRoute>
-                <Layout>
-                  <AttendancePage />
-                </Layout>
-              </ManagerRoute>
+              </ProtectedRoute>
             } />
 
             {/* All Authenticated Users Routes */}
-            <Route path="/employee-projects" element={
-              <UserRoute>
+            <Route path="/attendance" element={
+              <ProtectedRoute>
                 <Layout>
-                  <EmployeeProjectsPage />
+                  <AttendancePage />
                 </Layout>
-              </UserRoute>
+              </ProtectedRoute>
             } />
+
+            {/* Admin, HR, User, Manager Routes */}
             <Route path="/salary" element={
-              <UserRoute>
+              <ProtectedRoute roles={['admin', 'hr', 'user', 'manager']}>
                 <Layout>
                   <SalaryPage />
                 </Layout>
-              </UserRoute>
+              </ProtectedRoute>
+            } />
+
+            {/* Admin, HR, Manager Routes */}
+            <Route path="/employee-projects" element={
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
+                <Layout>
+                  <EmployeeProjectsPage />
+                </Layout>
+              </ProtectedRoute>
             } />
             <Route path="/leave" element={
-              <UserRoute>
+              <ProtectedRoute>
                 <Layout>
                   <LeavePage />
                 </Layout>
-              </UserRoute>
+              </ProtectedRoute>
             } />
 
             {/* Manager Routes */}
