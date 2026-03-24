@@ -4,8 +4,8 @@
  * @param {Object} options - Formatting options
  * @param {string} options.currency - Currency symbol (default: '$')
  * @param {string} options.locale - Locale for formatting (default: 'en-US')
- * @param {number} options.minimumFractionDigits - Min decimal places (default: 2)
- * @param {number} options.maximumFractionDigits - Max decimal places (default: 2)
+ * @param {number} options.minimumFractionDigits - Min decimal places (default: 0)
+ * @param {number} options.maximumFractionDigits - Max decimal places (default: 0)
  * @param {string} options.displayValue - Value to show for null/undefined (default: 'N/A')
  * @returns {string} Formatted currency string or display value for invalid inputs
  */
@@ -13,8 +13,8 @@ export const formatCurrency = (amount, options = {}) => {
   const {
     currency = '$',
     locale = 'en-US',
-    minimumFractionDigits = 2,
-    maximumFractionDigits = 2,
+    minimumFractionDigits = 0,
+    maximumFractionDigits = 0,
     displayValue = 'N/A'
   } = options;
 
@@ -48,17 +48,17 @@ export const formatCurrency = (amount, options = {}) => {
 /**
  * Format currency without symbol (for input fields or calculations)
  * @param {number|string|null|undefined} amount - The monetary value to format
- * @returns {string} Formatted number string with commas and decimals
+ * @returns {string} Formatted number string with commas (no decimals)
  */
 export const formatNumber = (amount) => {
   if (amount === null || amount === undefined || amount === '' || isNaN(Number(amount))) {
-    return '0.00';
+    return '0';
   }
 
   const numericAmount = Number(amount);
   return numericAmount.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   });
 };
 
