@@ -157,6 +157,10 @@ export const AuthProvider = ({ children }) => {
 
       const response = await axiosInstance.get(`${API_URL}/auth/me`);
       
+      console.log("AUTH CONTEXT /AUTH/ME RESPONSE:", response.data);
+      console.log("AUTH CONTEXT USER DATA:", response.data.data);
+      console.log("AUTH CONTEXT USER ROLE:", response.data.data?.role);
+      
       if (response.data.success) {
         dispatch({ type: AUTH_ACTIONS.LOAD_USER_SUCCESS, payload: response.data.data });
       } else {
@@ -190,6 +194,9 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data.success) {
         const { token, user } = response.data.data;
+        
+        console.log("LOGIN RESPONSE USER:", user);
+        console.log("LOGIN USER ROLE:", user.role);
         
         // Store token and user in localStorage
         localStorage.setItem(import.meta.env.VITE_TOKEN_STORAGE_KEY || 'ems_token', token);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../api/axiosInstance';
+import { getDashboardData, projectFilters } from '../api/managerService';
 
 const ManagerDashboard = () => {
   const { user } = useAuth();
@@ -24,63 +24,40 @@ const ManagerDashboard = () => {
       if (!user) return;
       
       setLoading(true);
-      
-      // Get manager ID with fallback
-      const managerId = user?.user_id || user?.id;
+      setError(null);
       
       // Debug logs (TEMPORARY)
       console.log("USER:", user);
-      console.log("Manager ID:", managerId);
       
-      // Get today's date for attendance filtering
-      const today = new Date().toISOString().split('T')[0];
+      // Fetch manager-specific dashboard data with error handling
+      const dashboardData = await getDashboardData();
       
-      // Fetch all necessary data in parallel
-      const [
-        employeesRes,
-        projectsRes,
-        attendanceRes,
-        leavesRes
-      ] = await Promise.all([
-        axiosInstance.get('/employees'),
-        axiosInstance.get('/projects'),
-        axiosInstance.get(`/attendance?start_date=${today}&end_date=${today}`),
-        axiosInstance.get('/leave-requests?status=Pending')
-      ]);
+      console.log("Dashboard Data:", dashboardData);
       
-      const employees = employeesRes.data.data || employeesRes.data || [];
-      const projects = projectsRes.data.data || projectsRes.data || [];
-      const attendance = attendanceRes.data.data || attendanceRes.data || [];
-      const leaveRequests = leavesRes.data.data || leavesRes.data || [];
+      // Calculate stats from real data with fallbacks
+      const teamMembers = dashboardData.teamMembers || [];
       
-      console.log("Employees:", employees);
+      // Use centralized filtering utility (same logic as backend)
+      const activeProjects = (dashboardData.projects || []).filter(projectFilters.isActive);
       
-      // Calculate manager-specific stats
-      const teamMembers = employees.filter(
-        emp => Number(emp.manager_id) === Number(managerId)
-      );
-      const activeProjects = projects.filter(
-        proj => Number(proj.manager_id) === Number(managerId) && proj.status === 'Active'
-      );
+      console.log("=== DASHBOARD DEBUG ===");
+      console.log("Dashboard projects array:", dashboardData.projects);
+      console.log("Dashboard projects count:", dashboardData.projects?.length);
+      console.log("Active projects filtered:", activeProjects);
+      console.log("Active projects count:", activeProjects.length);
+      console.log("=== END DASHBOARD DEBUG ===");
       
+      const todaysAttendance = dashboardData.attendance || [];
+      const pendingLeaves = dashboardData.leaveRequests || [];
+      
+      console.log("Team Members:", teamMembers);
       console.log("Filtered Team:", teamMembers);
       
-      const todaysAttendance = attendance.filter(
-        att => att.date === today &&
-        teamMembers.some(emp => emp.employee_id === att.employee_id)
-      );
-      
       const presentCount = todaysAttendance.filter(
-        att => att.status === 'Present'
+        att => att.attendance_status === 'Present' || att.status === 'Present'
       ).length;
       
       const absentCount = teamMembers.length - presentCount;
-      
-      const pendingLeaves = leaveRequests.filter(
-        leave =>
-          leave.status === 'Pending' &&
-          teamMembers.some(emp => emp.employee_id === leave.employee_id)
-      );
       
       setStats({
         teamMembers: teamMembers.length,
@@ -91,8 +68,17 @@ const ManagerDashboard = () => {
       });
       
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data');
+      console.error("Dashboard fetch failed:", err);
+      setError('Failed to load dashboard data. Please try again.');
+      
+      // Set default values on error to prevent crashes
+      setStats({
+        teamMembers: 0,
+        activeProjects: 0,
+        todaysAttendance: 0,
+        absentToday: 0,
+        pendingLeaves: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -208,7 +194,7 @@ const ManagerDashboard = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <button 
-              onClick={() => navigate('/projects/create')}
+              onClick={() => navigate('/projects')}
               className="p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-left font-medium"
             >
               Create Project
@@ -217,10 +203,10 @@ const ManagerDashboard = () => {
               onClick={() => navigate('/employees')}
               className="p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-left font-medium"
             >
-              View Team
+              View Team Members
             </button>
             <button 
-              onClick={() => navigate('/leave-requests')}
+              onClick={() => navigate('/leave')}
               className="p-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors text-left font-medium"
             >
               View Leave Requests

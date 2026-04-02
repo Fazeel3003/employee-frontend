@@ -212,24 +212,62 @@ function SalaryPage() {
           </div>
         ) : (
           <>
-            {filteredSalaryHistory.length === 0 && searchQuery && (
+            {filteredSalaryHistory.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
-                <p style={{ fontSize: '16px' }}>
-                  No results found for {searchQuery}
-                </p>
-                <p style={{ fontSize: '14px' }}>
-                  Try different keywords or clear all filters
-                </p>
-                <button
-                  onClick={clearFilters}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Clear Filters
-                </button>
+                <div className="mb-4">
+                  <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                
+                {searchQuery ? (
+                  <>
+                    <p style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+                      No salary records found
+                    </p>
+                    <p style={{ fontSize: '14px', marginBottom: '16px' }}>
+                      No results match your search for "{searchQuery}"
+                    </p>
+                    <button
+                      onClick={clearFilters}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Clear Search
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+                      {canManageAll ? 'No salary records available' : 'No salary history available'}
+                    </p>
+                    <p style={{ fontSize: '14px', marginBottom: '16px', lineHeight: '1.5' }}>
+                      {canManageAll 
+                        ? 'Start by adding salary records for employees. Salary history will appear here once records are created.'
+                        : 'Your salary history will appear here once your salary records are added to the system.'
+                      }
+                    </p>
+                    {canManageAll && (
+                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p style={{ fontSize: '14px', color: '#1E40AF', marginBottom: '8px' }}>
+                          <strong>💡 Pro Tip:</strong> Keep accurate salary records to track compensation changes, 
+                          annual reviews, and maintain compliance with financial reporting standards.
+                        </p>
+                      </div>
+                    )}
+                    {!canManageAll && (
+                      <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>
+                          <strong>📋 Note:</strong> If you believe this is an error, please contact your 
+                          HR department or system administrator for assistance.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            )}
-
-            {filteredSalaryHistory.length > 0 && (
+            ) : (
               <>
                 <SalaryTable
                   salaryHistory={paginatedSalaryHistory}

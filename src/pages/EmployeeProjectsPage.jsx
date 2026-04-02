@@ -4,6 +4,7 @@ import EmployeeProjectTable from "../components/EmployeeProjectTable";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
 import { useModal } from "../context/ModalContext";
+import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import {
   getEmployeeProjects,
@@ -15,6 +16,8 @@ import { getEmployees } from "../api/employeeService";
 import { getProjects } from "../api/projectService";
 
 function EmployeeProjectsPage() {
+  const { isAdmin, isManager, isHR } = useAuth();
+  const canManageAssignments = isAdmin() || isHR() || isManager();
   const [assignments, setAssignments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [projects, setProjects] = useState([]);

@@ -27,24 +27,17 @@ function LeavePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingLeave, setEditingLeave] = useState(null);
   const { isAdmin, isHR, isManager, isUser } = useAuth();
-  const canManageAll = isAdmin() || isHR() || isManager();
+  const canManageAll = isAdmin() || isHR();
+  const canApprove = isAdmin() || isHR() || isManager();
 
   const itemsPerPage = 10;
 
   const fetchEmployees = async () => {
     try {
       if (!canManageAll) return;
-      
-      let empList = [];
-      if (isManager()) {
-        const res = await axiosInstance.get('/employees/team');
-        empList = res.data.data || [];
-      } else {
-        const res = await getEmployees(1, 1000, "");
-        empList = Array.isArray(res.data.data) 
-          ? res.data.data : [];
-      }
-      setEmployees(empList);
+      const res = await getEmployees(1, 1000, "");
+      setEmployees(Array.isArray(res.data.data) 
+        ? res.data.data : []);
     } catch (err) {
       console.error('Failed to fetch employees:', err);
     }
@@ -320,7 +313,7 @@ function LeavePage() {
                   onDelete={handleDeleteLeave}
                   onApprove={handleApproveLeave}
                   onReject={handleRejectLeave}
-                  canManageAll={canManageAll}
+                  canApprove={canApprove}
                 />
                 
                 <Pagination

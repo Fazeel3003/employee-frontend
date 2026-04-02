@@ -24,6 +24,19 @@ function PositionForm({ onSave, editingPosition }) {
   }, [editingPosition]);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Prevent decimal input for salary fields
+    if (name === 'min_salary' || name === 'max_salary') {
+      // Allow only whole numbers
+      const wholeNumberValue = value.replace(/[^0-9]/g, '');
+      setFormData({
+        ...formData,
+        [name]: wholeNumberValue
+      });
+      return;
+    }
+    
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -62,17 +75,29 @@ function PositionForm({ onSave, editingPosition }) {
 
       <input
         name="min_salary"
+        type="text"
         placeholder="Min Salary"
         value={formData.min_salary || ""}
         onChange={handleChange}
+        onKeyDown={(e) => {
+          if (e.key === "." || e.key === "-") {
+            e.preventDefault();
+          }
+        }}
         className="border p-2 rounded"
       />
 
       <input
         name="max_salary"
+        type="text"
         placeholder="Max Salary"
         value={formData.max_salary || ""}
         onChange={handleChange}
+        onKeyDown={(e) => {
+          if (e.key === "." || e.key === "-") {
+            e.preventDefault();
+          }
+        }}
         className="border p-2 rounded"
       />
 

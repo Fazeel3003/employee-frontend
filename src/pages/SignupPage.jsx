@@ -11,7 +11,7 @@ const SignupPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'user', // Default role
+    role: 'employee', // Default role
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -346,7 +346,7 @@ const SignupPage = () => {
                   }`}
                 >
                   <option value="">Select a role</option>
-                  <option value="user">User</option>
+                  <option value="employee">Employee</option>
                   <option value="manager">Manager</option>
                   <option value="hr">HR</option>
                   <option value="admin">Admin</option>

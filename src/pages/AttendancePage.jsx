@@ -33,50 +33,93 @@ function AttendancePage() {
     attendance_status: 'Present'
   });
   const { showConfirmDelete, showSuccess, showError } = useModal();
-  const { isAdmin, isHR, isManager, isUser, isLoading: authLoading } = useAuth();
-  const canManageAll = isAdmin() || isHR() || isManager();
+  const { isAdmin, isHR, isManager, isUser, isLoading: authLoading, user } = useAuth();
+  const canManageAll = isAdmin() || isHR();
 
   const itemsPerPage = 10;
 
+  const refetchAttendance = async () => {
+    try {
+      if (isManager()) {
+        const [attendRes, teamEmpRes] = await Promise.all([
+          getAttendance(),
+          axiosInstance.get('/attendance/team-employees')
+        ]);
+        console.log('MANAGER ATTENDANCE RESPONSE:', attendRes);
+        setAttendance(attendRes.data?.data || []);
+        setEmployees(teamEmpRes.data?.data || []);
+      } else if (isAdmin() || isHR()) {
+        const [attendRes, empRes] = await Promise.all([
+          getAttendance(),
+          getEmployees(1, 1000, "")
+        ]);
+        console.log('ADMIN/HR ATTENDANCE RESPONSE:', attendRes);
+        console.log('TOTAL EMPLOYEES RECEIVED:', empRes.data?.data?.length || 0);
+        setAttendance(attendRes.data || []);
+        setEmployees(empRes.data?.data || []);
+      } else {
+        const attendRes = await getAttendance();
+        console.log('EMPLOYEE ATTENDANCE RESPONSE:', attendRes);
+        setAttendance(attendRes.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to refetch attendance:', err);
+      toast.error('Failed to load attendance data');
+    }
+  };
+
   // Fetch data on mount
   useEffect(() => {
-    if (!authLoading) {
-      const fetchData = async () => {
-        try {
-          setLoading(true);
-          
-          if (isManager()) {
-            const [attendRes, teamEmpRes] = await Promise.all([
-              getAttendance(),
-              axiosInstance.get('/attendance/team-employees')
-            ]);
-            setAttendance(attendRes.data?.data || []);
-            setEmployees(teamEmpRes.data?.data || []);
-            
-          } else if (isAdmin() || isHR()) {
-            const [attendRes, empRes] = await Promise.all([
-              getAttendance(),
-              getEmployees()
-            ]);
-            setAttendance(attendRes.data?.data || []);
-            setEmployees(empRes.data?.data || empRes.data || []);
-            
-          } else {
-            const attendRes = await getAttendance();
-            setAttendance(attendRes.data?.data || []);
-            setEmployees([]);
-          }
-          
-        } catch (err) {
-          console.error('Failed to load attendance data:', err);
-          toast.error('Failed to load attendance data');
-        } finally {
-          setLoading(false);
+    if (authLoading) return;
+    if (!user) return;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        if (isManager()) {
+          const [attendRes, teamEmpRes] = await Promise.all([
+            getAttendance(),
+            axiosInstance.get('/attendance/team-employees')
+          ]);
+          const attendData = attendRes.data?.data || [];
+          const empData = teamEmpRes.data?.data || [];
+          console.log('MANAGER ATTENDANCE:', attendData);
+          console.log('MANAGER TEAM:', empData);
+          setAttendance(attendData);
+          setEmployees(empData);
+
+        } else if (isAdmin() || isHR()) {
+          const [attendRes, empRes] = await Promise.all([
+            getAttendance(),
+            getEmployees(1, 1000, "")
+          ]);
+          const attendData = attendRes.data || [];
+          const empData = empRes.data?.data || [];
+          console.log('ADMIN/HR ATTENDANCE:', attendData);
+          console.log('TOTAL EMPLOYEES RECEIVED:', empData.length);
+          setAttendance(attendData);
+          setEmployees(empData);
+
+        } else {
+          const attendRes = await getAttendance();
+          const attendData = attendRes.data || [];
+          console.log('EMPLOYEE ATTENDANCE:', attendData);
+          console.log('FULL API RESPONSE:', attendRes);
+          setAttendance(attendData);
+          setEmployees([]);
         }
-      };
-      fetchData();
-    }
-  }, [authLoading]);
+
+      } catch (err) {
+        console.error('Fetch error:', err);
+        toast.error('Failed to load attendance data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [authLoading, user?.role]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -92,9 +135,11 @@ function AttendancePage() {
     return `${year}-${month}-${day}`;
   };
 
-  // Filter logic
+  // Filter logic with proper null checks
   const filteredAttendance = attendance.filter(a => {
-    const name = `${a.first_name} ${a.last_name} ${a.employee_code}`.toLowerCase();
+    if (!a) return false;
+    
+    const name = `${a.first_name || ''} ${a.last_name || ''} ${a.employee_code || ''}`.toLowerCase();
     const empMatch = searchEmployee === '' || name.includes(searchEmployee.toLowerCase());
     
     const dateMatch = searchDate === '' || 
@@ -103,6 +148,17 @@ function AttendancePage() {
     const statusMatch = searchStatus === 'all' || a.attendance_status === searchStatus;
     
     return empMatch && dateMatch && statusMatch;
+  });
+
+  // Debug logging
+  console.log('Attendance Debug:', {
+    totalAttendance: attendance.length,
+    filteredAttendance: filteredAttendance.length,
+    searchEmployee,
+    searchDate,
+    searchStatus,
+    attendanceData: attendance,
+    filteredData: filteredAttendance
   });
 
   // Pagination
@@ -167,25 +223,8 @@ function AttendancePage() {
         attendance_status: 'Present'
       });
       
-      // Refetch attendance with role-based logic
-      if (isManager()) {
-        const [attendRes, teamEmpRes] = await Promise.all([
-          getAttendance(),
-          axiosInstance.get('/attendance/team-employees')
-        ]);
-        setAttendance(attendRes.data?.data || []);
-        setEmployees(teamEmpRes.data?.data || []);
-      } else if (isAdmin() || isHR()) {
-        const [attendRes, empRes] = await Promise.all([
-          getAttendance(),
-          getEmployees()
-        ]);
-        setAttendance(attendRes.data?.data || []);
-        setEmployees(empRes.data?.data || empRes.data || []);
-      } else {
-        const attendRes = await getAttendance();
-        setAttendance(attendRes.data?.data || []);
-      }
+      // Refetch attendance data
+      await refetchAttendance();
 
     } catch (error) {
       console.error('Save attendance error:', error);
@@ -385,29 +424,36 @@ function AttendancePage() {
           <div className="text-center py-8">Loading...</div>
         ) : (
           <>
-            {filteredAttendance.length === 0 && (searchEmployee || searchDate || searchStatus !== 'all') && (
+            
+            {filteredAttendance.length === 0 ? (
               <div style={{
                 textAlign: 'center',
                 padding: '48px',
                 color: '#6B7280'
               }}>
                 <p style={{ fontSize: '16px' }}>
-                  � No attendance records found matching your filters
+                  📅 No attendance records found
                 </p>
                 <p style={{ fontSize: '14px' }}>
-                  Try different filter criteria or clear all filters
+                  {searchEmployee || searchDate || searchStatus !== 'all' 
+                    ? 'Try different filter criteria or clear all filters' 
+                    : 'Your attendance records will appear here once they are marked'}
                 </p>
-                <button 
-                  onClick={clearFilters}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Clear Filters
-                </button>
+                {(searchEmployee || searchDate || searchStatus !== 'all') && (
+                  <button 
+                    onClick={clearFilters}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Clear Filters
+                  </button>
+                )}
               </div>
-            )}
-
-            {filteredAttendance.length > 0 && (
+            ) : (
               <>
+                <div className="mb-4 text-sm text-gray-600">
+                  Showing {filteredAttendance.length} attendance record{filteredAttendance.length !== 1 ? 's' : ''}
+                  {filteredAttendance.length > 0 && ` (Page ${currentPage} of ${totalPages})`}
+                </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">

@@ -35,6 +35,18 @@ function SalaryForm({ onSave, editingSalary, employees }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Prevent decimal input for salary amount
+    if (name === 'salary_amount') {
+      // Allow only whole numbers
+      const wholeNumberValue = value.replace(/[^0-9]/g, '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: wholeNumberValue
+      }));
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -47,7 +59,7 @@ function SalaryForm({ onSave, editingSalary, employees }) {
     // Process form data
     const processedData = {
       emp_id: formData.emp_id && !isNaN(parseInt(formData.emp_id)) ? parseInt(formData.emp_id) : 0,
-      salary_amount: formData.salary_amount && !isNaN(parseFloat(formData.salary_amount)) ? parseFloat(formData.salary_amount) : 0,
+      salary_amount: formData.salary_amount && !isNaN(parseInt(formData.salary_amount)) ? parseInt(formData.salary_amount) : 0,
       effective_from: formData.effective_from || "",
       effective_to: formData.effective_to || null,
       change_reason: formData.change_reason || "",
@@ -94,14 +106,18 @@ function SalaryForm({ onSave, editingSalary, employees }) {
             Salary Amount *
           </label>
           <input
-            type="number"
+            type="text"
             name="salary_amount"
-            placeholder="0.00"
+            placeholder="0"
             value={formData.salary_amount}
             onChange={handleChange}
+            onKeyDown={(e) => {
+              if (e.key === "." || e.key === "-") {
+                e.preventDefault();
+              }
+            }}
             required
             min="0"
-            step="0.01"
             className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>

@@ -24,6 +24,26 @@ function DepartmentForm({ onSave, editingDepartment }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Prevent decimal input for budget
+    if (name === 'budget') {
+      // Allow only whole numbers
+      const wholeNumberValue = value.replace(/[^0-9]/g, '');
+      setFormData({
+        ...formData,
+        [name]: wholeNumberValue
+      });
+      
+      // Clear error for this field when user starts typing
+      if (errors[name]) {
+        setErrors({
+          ...errors,
+          [name]: ""
+        });
+      }
+      return;
+    }
+    
     setFormData({
       ...formData,
       [name]: value
@@ -48,11 +68,13 @@ function DepartmentForm({ onSave, editingDepartment }) {
       newErrors.dept_name = "Department name must be at least 2 characters";
     }
 
-    // Budget validation (optional but if provided must be positive)
+    // Budget validation (optional but if provided must be positive whole number)
     if (formData.budget && formData.budget.trim()) {
-      const budgetValue = parseFloat(formData.budget);
+      const budgetValue = parseInt(formData.budget);
       if (isNaN(budgetValue) || budgetValue < 0) {
-        newErrors.budget = "Budget must be a positive number";
+        newErrors.budget = "Budget must be a positive whole number";
+      } else if (!Number.isInteger(budgetValue)) {
+        newErrors.budget = "Budget must be a whole number";
       }
     }
 
@@ -72,7 +94,7 @@ function DepartmentForm({ onSave, editingDepartment }) {
     const submissionData = {
       dept_name: formData.dept_name.trim(),
       location: formData.location.trim() || null,
-      budget: formData.budget && parseFloat(formData.budget) > 0 ? parseFloat(formData.budget) : null
+      budget: formData.budget && parseInt(formData.budget) > 0 ? parseInt(formData.budget) : null
     };
 
     console.log('SUBMITTING DEPARTMENT DATA:', submissionData);
@@ -138,13 +160,17 @@ function DepartmentForm({ onSave, editingDepartment }) {
             Budget
           </label>
           <input
-            type="number"
+            type="text"
             name="budget"
             placeholder="e.g. 50000"
             value={formData.budget}
             onChange={handleChange}
+            onKeyDown={(e) => {
+              if (e.key === "." || e.key === "-") {
+                e.preventDefault();
+              }
+            }}
             min="0"
-            step="0.01"
             className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.budget ? 'border-red-500' : 'border-gray-300'
             }`}

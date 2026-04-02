@@ -2,42 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../api/axiosInstance';
-import CurrencyDisplay from '../components/CurrencyDisplay';
+import { getEmployees } from '../api/employeeService';
+import { getProjects } from '../api/projectService';
+import { getLeaveRequests } from '../api/leaveService';
+import { getAttendance } from '../api/attendanceServices';
+import { getDepartments } from '../api/departmentService';
+import { projectFilters } from '../api/managerService';
 
 const DashboardPage = () => {
   const { user, isAdmin, isManager, isHR, isUser } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
-    // Admin/Manager stats
+    // Essential stats for 4-card dashboard
     totalEmployees: 0,
     totalDepartments: 0,
     totalProjects: 0,
-    totalSalaryCost: 0,
-    totalSalaryRecords: 0,
     activeProjects: 0,
     pendingLeaveRequests: 0,
     todayAttendance: 0,
-    // Manager specific stats
-    teamMembers: 0,
-    pendingApprovals: 0,
-    // HR specific stats
-    hrTasks: 0,
-    pendingHRReviews: 0,
-    // User specific stats
-    myProjects: 0,
-    currentMonthSalary: 0,
-    leaveBalance: 0,
-    // User profile
-    userProfile: {
-      employeeId: `EMP${user?.userId || '001'}`,
-      email: user?.email || '',
-      department: 'Engineering',
-      position: 'Software Developer'
-    }
+    newHiresThisMonth: 0,
+    projectsCompleted: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [abortController, setAbortController] = useState(null);
+
+  // Utility function for consistent date formatting
+  const formatDateLocal = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   // Fetch dashboard statistics
   useEffect(() => {
@@ -45,111 +42,74 @@ const DashboardPage = () => {
       try {
         setLoading(true);
         
-        // Create new AbortController for this request
-        const controller = new AbortController();
-        setAbortController(controller);
-        
-        // Define API endpoints based on user role
-        const adminEndpoints = [
-          '/employees/count',
-          '/departments/count',
-          '/projects/count',
-          '/salary-history/total',
-          '/projects/active/count',
-          '/leave-requests/pending/count',
-          '/attendance/today/count',
-          '/salary-history/count',
-          '/employees/new-hires/count',
-          '/projects/completed/count',
-          '/auth/sessions/count',
-          '/health/last-activity'
-        ];
-        
-        const managerEndpoints = [
-          '/employees/count',
-          '/projects/active/count',
-          '/attendance/today/count',
-          '/leave-requests/pending/count',
-          '/projects/count',
-          '/projects/completed/count',
-          '/employees/new-hires/count',
-          '/health/last-activity'
-        ];
-        
-        const hrEndpoints = [
-          '/employees/count',
-          '/projects/active/count',
-          '/leave-requests/pending/count',
-          '/attendance/today/count',
-          '/employees/new-hires/count',
-          '/projects/completed/count',
-          '/health/last-activity'
-        ];
-        
-        const userEndpoints = [
-          '/projects/my/count',
-          '/salary-history/current-month',
-          '/leave-requests/balance',
-          '/employees/me'
-        ];
-        
-        // Select endpoints based on user role
-        let endpoints = [];
-        if (isAdmin) {
-          endpoints = adminEndpoints;
-        } else if (isManager) {
-          endpoints = managerEndpoints;
-        } else if (isHR) {
-          endpoints = hrEndpoints;
-        } else if (isUser) {
-          endpoints = userEndpoints;
-        }
-        
         // STEP 1: Measure API response time
         const start = Date.now();
         const healthRes = await axiosInstance.get('/health');
         const responseTime = Date.now() - start;
 
-        // STEP 2: Run role-specific calls in parallel
+        // STEP 2: Use same APIs as working pages
         if (isAdmin()) {
-          // call all admin endpoints including salary/total, salary/count
-          const [empRes, deptRes, projRes, activeProjRes, leaveRes,
-            salaryTotalRes, salaryCountRes, attendanceRes, 
-            newHiresRes, completedProjRes, sessionsRes, lastActivityRes
-          ] = await Promise.all([
-            axiosInstance.get('/employees/count'),
-            axiosInstance.get('/departments/count'),
-            axiosInstance.get('/projects/count'),
-            axiosInstance.get('/projects/active/count'),
-            axiosInstance.get('/leave-requests/pending/count'),
-            axiosInstance.get('/salary-history/total'),
-            axiosInstance.get('/salary-history/count'),
-            axiosInstance.get('/attendance/today/count'),
-            axiosInstance.get('/employees/new-hires/count'),
-            axiosInstance.get('/projects/completed/count'),
-            axiosInstance.get('/auth/sessions/count'),
-            axiosInstance.get('/health/last-activity')
+          // Use same APIs and logic as individual pages
+          const [empRes, projRes, leaveRes, attendanceRes, deptRes] = await Promise.all([
+            getEmployees(1, 1000, ""), // Same as EmployeesPage
+            getProjects(1, 1000, ""), // Same as ProjectsPage
+            getLeaveRequests(1, 1000, ""), // Same as LeavePage
+            getAttendance(), // Same as AttendancePage
+            getDepartments(1, 1000, "") // Same as DepartmentPage
           ]);
           
-          // set admin stats
-          setStats({
-            totalEmployees: empRes.data.count || 0,
-            totalDepartments: deptRes.data.count || 0,
-            totalProjects: projRes.data.count || 0,
-            totalSalaryCost: salaryTotalRes.data.total || 0,
-            totalSalaryRecords: salaryCountRes.data.count || 0,
-            activeProjects: activeProjRes.data.count || 0,
-            pendingLeaveRequests: leaveRes.data.count || 0,
-            todayAttendance: attendanceRes.data.count || 0,
-            newHiresThisMonth: newHiresRes.data.count || 0,
-            projectsCompleted: completedProjRes.data.count || 0,
-            activeSessions: sessionsRes.data.count || 0,
-            lastActivity: lastActivityRes.data.display || '—',
-            dbStatus: healthRes.data.status || 'Healthy',
-            dbHealthy: healthRes.data.isHealthy ?? true,
-            apiResponseTime: responseTime + 'ms'
-          });
+          // Apply same data extraction logic as individual pages
+          const employeesList = empRes.data?.data || [];
+          const projectsList = projRes.data?.data || [];
+          const leaveList = leaveRes.data?.data || [];
+          const attendanceList = attendanceRes.data || [];
+          const departmentsList = deptRes.data?.data || [];
           
+          // Same logic as LeavePage and LeaveManagementPage: filter by approval_status === 'pending' or 'Pending'
+          const pendingLeaves = leaveList.filter(r => 
+            r.approval_status === 'pending' || r.approval_status === 'Pending'
+          ).length;
+          
+          // Same logic as ProjectsPage: use projectFilters.isActive
+          const activeProjects = projectsList.filter(p => projectFilters.isActive(p)).length;
+          
+          // Today's attendance: filter by today's date and status === 'Present' or 'present'
+          const today = new Date().toISOString().split('T')[0];
+          const todayAttendance = attendanceList.filter(a => 
+            formatDateLocal(a.attendance_date) === today && 
+            (a.attendance_status === 'Present' || a.attendance_status === 'present')
+          ).length;
+          
+          // New hires this month: copy logic from HR dashboard
+          const currentMonth = new Date().getMonth();
+          const currentYear = new Date().getFullYear();
+          const newHiresThisMonth = employeesList.filter(emp => {
+            if (!emp.hire_date) return false;
+            try {
+              const hireDate = new Date(emp.hire_date);
+              if (isNaN(hireDate.getTime())) return false;
+              return hireDate.getMonth() === currentMonth && hireDate.getFullYear() === currentYear;
+            } catch (error) {
+              console.warn('Invalid hire_date for employee:', emp.id, emp.hire_date);
+              return false;
+            }
+          }).length;
+          
+          // Completed projects: use projectFilters.isCompleted
+          const projectsCompleted = projectsList.filter(projectFilters.isCompleted).length;
+          
+          // set admin stats with real data
+          setStats({
+            totalEmployees: employeesList.length,
+            totalDepartments: departmentsList.length,
+            totalProjects: projectsList.length,
+            activeProjects,
+            pendingLeaveRequests: pendingLeaves,
+            todayAttendance,
+            newHiresThisMonth,
+            projectsCompleted
+          });
+        
         } else if (isManager()) {
           // ONLY call endpoints manager can access
           const [empRes, activeProjRes, attendanceRes, leaveRes,
@@ -223,42 +183,14 @@ const DashboardPage = () => {
         }
         
       } catch (err) {
-        // Ignore AbortError from request cancellation
-        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
-          return;
-        }
-        console.error('Error fetching dashboard stats:', err);
         setError('Failed to load dashboard statistics');
       } finally {
         setLoading(false);
-      }
+      }  
     }; 
 
     fetchDashboardStats();
-
-    // Cleanup function to cancel pending requests
-    return () => {
-      if (abortController) {
-        abortController.abort();
-      }
-    };
-  }, [isAdmin, isManager, isHR, isUser, user?.userId, user?.email]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortController) {
-        abortController.abort();
-      }
-    };
-  }, [abortController]);
- 
-  // Helper function for API response time color
-  const getSpeedColor = (ms) => {
-    if (ms < 100) return '#10B981';  // green
-    if (ms < 300) return '#F97316';  // orange
-    return '#EF4444';                // red
-  };
+  }, [isAdmin, isManager, isHR, isUser]);
 
   // Stat Card Component
   const StatCard = ({ title, value, icon, color = 'blue', trend = null }) => {
@@ -343,138 +275,103 @@ const DashboardPage = () => {
       )}
 
       {/* Role-based Dashboard Content */}
-      {isAdmin && (
+      {isAdmin() && (
         <div>
-          {/* System Overview */}
+          {/* Stats Row - 4 Cards Only */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">System Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
                 title="Total Employees"
                 value={stats.totalEmployees}
                 icon={<span>👥</span>}
                 color="blue"
-                trend={5.2}
-              />
-              <StatCard
-                title="Total Departments"
-                value={stats.totalDepartments}
-                icon={<span>🏢</span>}
-                color="purple"
-                trend={0}
-              />
-              <StatCard
-                title="Total Projects"
-                value={stats.totalProjects}
-                icon={<span>📊</span>}
-                color="green"
-                trend={12.5}
               />
               <StatCard
                 title="Active Projects"
                 value={stats.activeProjects}
-                icon={<span>📈</span>}
+                icon={<span>�</span>}
                 color="indigo"
-                trend={8.3}
               />
               <StatCard
-                title="Pending Leave Requests"
+                title="Pending Leaves"
                 value={stats.pendingLeaveRequests}
                 icon={<span>📝</span>}
                 color="yellow"
               />
               <StatCard
-                title="Total Salary Records"
-                value={stats.totalSalaryRecords || 0}
-                icon={<span>💰</span>}
-                color="red"
-                trend={3.8}
+                title="Today's Attendance"
+                value={stats.todayAttendance}
+                icon={<span>✅</span>}
+                color="green"
               />
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Activity</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-600">Today's Attendance</span>
-                    <span className="font-semibold text-green-600">{stats.todayAttendance}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-600">Pending Leave Requests</span>
-                    <span className="font-semibold text-orange-600">{stats.pendingLeaveRequests}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-600">New Hires This Month</span>
-                    <span className="font-semibold text-blue-600">{stats.newHiresThisMonth}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-600">Projects Completed</span>
-                    <span className="font-semibold text-purple-600">{stats.projectsCompleted}</span>
-                  </div>
+          {/* Two Column Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: System Summary */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">System Summary</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <span className="text-sm text-gray-600">Total Departments</span>
+                  <span className="font-semibold text-blue-600">{stats.totalDepartments}</span>
                 </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-600">Database Status</span>
-                    <span style={{ color: stats.dbHealthy ? '#10B981' : '#EF4444' }}>
-                      ● {stats.dbStatus}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-600">API Response Time</span>
-                    <span style={{ color: getSpeedColor(parseInt(stats.apiResponseTime)) }}>
-                      {stats.apiResponseTime}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-600">Active Sessions</span>
-                    <span className="font-semibold text-blue-600">{stats.activeSessions}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-600">Last System Activity</span>
-                    <span className="font-semibold text-green-600">{stats.lastActivity}</span>
-                  </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <span className="text-sm text-gray-600">Total Projects</span>
+                  <span className="font-semibold text-green-600">{stats.totalProjects}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <span className="text-sm text-gray-600">Completed Projects</span>
+                  <span className="font-semibold text-purple-600">{stats.projectsCompleted}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <span className="text-sm text-gray-600">New Hires This Month</span>
+                  <span className="font-semibold text-indigo-600">{stats.newHiresThisMonth}</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Quick Actions */}
-          <div className="mb-8">
+            {/* Right: Quick Actions */}
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <button 
                   onClick={() => navigate('/employees/add')}
-                  className="p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                  className="w-full p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-left font-medium"
                 >
                   Add Employee
                 </button>
                 <button 
-                  onClick={() => navigate('/projects/create')}
-                  className="p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
-                >
-                  Create Project
-                </button>
-                <button 
                   onClick={() => navigate('/departments')}
-                  className="p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium"
+                  className="w-full p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-left font-medium"
                 >
-                  Manage Departments
+                  Add Department
                 </button>
                 <button 
-                  onClick={() => navigate('/reports')}
-                  className="p-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors text-sm font-medium"
+                  onClick={() => navigate('/positions')}
+                  className="w-full p-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors text-left font-medium"
                 >
-                  View Reports
+                  Manage Positions
+                </button>
+                <button 
+                  onClick={() => navigate('/leave')}
+                  className="w-full p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-left font-medium"
+                >
+                  View Leave Requests
+                </button>
+                <button 
+                  onClick={() => navigate('/attendance')}
+                  className="w-full p-3 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors text-left font-medium"
+                >
+                  View Attendance
+                </button>
+                <button 
+                  onClick={() => navigate('/salary')}
+                  className="w-full p-3 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-left font-medium"
+                >
+                  View Salary
                 </button>
               </div>
             </div>
@@ -482,7 +379,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {isManager && (
+      {isManager() && (
         <div>
           {/* Team Overview */}
           <div className="mb-8">
@@ -561,7 +458,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {isHR && (
+      {isHR() && (
         <div>
           {/* HR Overview */}
           <div className="mb-8">
@@ -654,7 +551,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {isUser && (
+     {isUser() && (
         <div>
           {/* User Dashboard */}
           <div className="mb-8">

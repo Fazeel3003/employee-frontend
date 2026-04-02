@@ -20,7 +20,8 @@ function EmployeesPage() {
   // STATES
   // ===============================
   const { showConfirmDelete, showSuccess, showError } = useModal();
-  const { isManager, isLoading: authLoading } = useAuth();
+  const { isManager, isAdmin, isHR, isLoading: authLoading } = useAuth();
+  const canManageEmployees = isAdmin() || isHR();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -230,12 +231,14 @@ function EmployeesPage() {
       </div>
 
       {/* FORM */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <EmployeeForm
-          onEmployeeAdded={handleSaveEmployee}
-          editingEmployee={editingEmployee}
-        />
-      </div>
+      {canManageEmployees && (
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <EmployeeForm
+            onEmployeeAdded={handleSaveEmployee}
+            editingEmployee={editingEmployee}
+          />
+        </div>
+      )}
 
       {/* SEARCH BAR */}
       <div className="flex justify-between items-center mb-4">

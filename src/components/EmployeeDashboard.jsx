@@ -8,65 +8,85 @@ const EmployeeDashboard = () => {
   const navigate = useNavigate();
   
   const [stats, setStats] = useState({
-    myProjects: 0,
-    currentMonthSalary: 0,
-    leaveBalance: 0,
-    attendanceThisMonth: 0,
-    pendingRequests: 0
+    presentToday: 0,
+    thisMonthAttendance: 0,
+    pendingLeaveRequests: 0
   });
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userProfile, setUserProfile] = useState({
-    employeeId: '',
-    email: '',
-    department: '',
-    position: ''
-  });
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      console.log("Fetching dashboard data for employee...");
       
+      // Use only attendance and leave APIs for employees
       const [
-        myEmpRes,
-        projectsRes,
-        salaryRes,
         leaveRes,
         attendanceRes
-      ] = await Promise.all([
-        axiosInstance.get('/employees/me'),
-        axiosInstance.get('/projects/my/count'),
-        axiosInstance.get('/salary-history/current-month'),
-        axiosInstance.get('/leave-requests/balance'),
-        axiosInstance.get('/attendance/my/month')
+      ] = await Promise.allSettled([
+        axiosInstance.get('/leave-requests'),
+        axiosInstance.get('/attendance')
       ]);
       
-      const myProjects = projectsRes.data.count || 0;
-      const currentMonthSalary = salaryRes.data.amount || 0;
-      const leaveBalance = leaveRes.data.balance || 0;
-      const attendanceThisMonth = attendanceRes.data.days_present || 0;
-      const pendingRequests = leaveRes.data.pending || 0;
+      // Extract data safely from settled promises
+      const leaveData = leaveRes.status === 'fulfilled' 
+        ? (leaveRes.value.data?.data || [])
+        : [];
+      const attendanceData = attendanceRes.status === 'fulfilled' 
+        ? (attendanceRes.value.data?.data || attendanceRes.value.data || [])
+        : [];
       
-      setStats({
-        myProjects,
-        currentMonthSalary,
-        leaveBalance,
-        attendanceThisMonth,
-        pendingRequests
+      console.log("Dashboard API responses:", {
+        leaveData,
+        attendanceData,
+        errors: {
+          leave: leaveRes.status === 'rejected' ? leaveRes.reason.message : null,
+          attendance: attendanceRes.status === 'rejected' ? attendanceRes.reason.message : null
+        }
       });
       
-      setUserProfile({
-        employeeId: myEmpRes.data?.employee_code || `EMP${user?.userId || '001'}`,
-        email: myEmpRes.data?.email || user?.email || '',
-        department: myEmpRes.data?.dept_name || 'Not Assigned',
-        position: myEmpRes.data?.position_title || 'Not Assigned'
+      // Get today's date for filtering
+      const today = new Date().toISOString().split('T')[0];
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      
+      // Calculate counts in frontend
+      const presentToday = attendanceData.filter(a => {
+        const attendanceDate = a.attendance_date?.split('T')[0];
+        return attendanceDate === today && a.attendance_status === 'Present';
+      }).length;
+      const thisMonthAttendance = attendanceData.filter(a => {
+        const attendanceDate = new Date(a.attendance_date);
+        return attendanceDate.getMonth() === currentMonth && 
+               attendanceDate.getFullYear() === currentYear &&
+               a.attendance_status === 'Present';
+      }).length;
+      const pendingLeaveRequests = leaveData.filter(l => l.status === 'Pending').length;
+      
+      console.log("Calculated stats:", {
+        presentToday,
+        thisMonthAttendance,
+        pendingLeaveRequests
+      });
+      
+      setStats({
+        presentToday,
+        thisMonthAttendance,
+        pendingLeaveRequests
       });
       
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data');
+      // Set default values to prevent UI crashes
+      setStats({
+        presentToday: 0,
+        thisMonthAttendance: 0,
+        pendingLeaveRequests: 0
+      });
+      setError('Some dashboard data could not be loaded');
     } finally {
       setLoading(false);
     }
@@ -76,7 +96,21 @@ const EmployeeDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Stat Card Component
+  // Get user display name
+  const getDisplayName = () => {
+    if (!user) return 'Employee';
+    if (user.name) return user.name;
+    if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`;
+    if (user.first_name) return user.first_name;
+    if (user.email) return user.email.split('@')[0];
+    return 'Employee';
+  };
+
+  // Get user initial
+  const getUserInitial = () => {
+    const name = getDisplayName();
+    return name.charAt(0).toUpperCase();
+  };
   const StatCard = ({ title, value, icon, color = 'blue' }) => {
     const colorClasses = {
       blue: 'bg-blue-500',
@@ -114,22 +148,34 @@ const EmployeeDashboard = () => {
 
   return (
     <div>
+      {/* Error Display */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-red-700">{error}</span>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Section */}
       <div className="mb-8">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">
-                Welcome back, {user?.name || 'Employee'}! 👤
+                Welcome back, {getDisplayName()}! 👤
               </h1>
               <p className="text-blue-100">
-                Here's your personal information and quick access to your work
+                Here's your work overview and quick actions
               </p>
             </div>
             <div className="hidden md:block">
               <div className="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                 <span className="text-3xl font-bold">
-                  {user?.name?.charAt(0)?.toUpperCase() || 'E'}
+                  {getUserInitial()}
                 </span>
               </div>
             </div>
@@ -143,110 +189,55 @@ const EmployeeDashboard = () => {
         </div>
       )}
 
-      {/* Employee Dashboard Content */}
-      <div>
-        {/* My Information */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">My Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <StatCard
-              title="My Projects"
-              value={stats.myProjects}
-              icon={<span>📊</span>}
-              color="blue"
-            />
-            <StatCard
-              title="This Month's Salary"
-              value={`$${stats.currentMonthSalary.toLocaleString()}`}
-              icon={<span>💰</span>}
-              color="green"
-            />
-            <StatCard
-              title="Leave Balance"
-              value={`${stats.leaveBalance} days`}
-              icon={<span>🏖️</span>}
-              color="purple"
-            />
-            <StatCard
-              title="Attendance This Month"
-              value={`${stats.attendanceThisMonth} days`}
-              icon={<span>✅</span>}
-              color="indigo"
-            />
-            <StatCard
-              title="Pending Requests"
-              value={stats.pendingRequests}
-              icon={<span>📝</span>}
-              color="yellow"
-            />
-          </div>
+      {/* Dashboard Stats - Clean Grid Layout */}
+      <div className="mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard
+            title="Present Today"
+            value={stats.presentToday}
+            icon={<span>✅</span>}
+            color="green"
+          />
+          <StatCard
+            title="This Month Attendance"
+            value={`${stats.thisMonthAttendance} days`}
+            icon={<span>📅</span>}
+            color="indigo"
+          />
+          <StatCard
+            title="Pending Leave Requests"
+            value={stats.pendingLeaveRequests}
+            icon={<span>📝</span>}
+            color="yellow"
+          />
         </div>
+      </div>
 
-        {/* Personal Information */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-              <span className="text-sm text-gray-600">Employee ID</span>
-              <span className="font-semibold">{userProfile.employeeId}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-              <span className="text-sm text-gray-600">Email</span>
-              <span className="font-semibold text-sm">{userProfile.email}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-              <span className="text-sm text-gray-600">Department</span>
-              <span className="font-semibold">{userProfile.department}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-              <span className="text-sm text-gray-600">Position</span>
-              <span className="font-semibold">{userProfile.position}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <button 
-                onClick={() => navigate('/projects')}
-                className="w-full p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-left font-medium"
-              >
-                View My Projects
-              </button>
-              <button 
-                onClick={() => navigate('/leave-requests/new')}
-                className="w-full p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-left font-medium"
-              >
-                Request Leave
-              </button>
-              <button 
-                onClick={() => navigate('/salary-history')}
-                className="w-full p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-left font-medium"
-              >
-                View Salary History
-              </button>
-              <button 
-                onClick={() => navigate('/attendance')}
-                className="w-full p-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors text-left font-medium"
-              >
-                Mark Attendance
-              </button>
-            </div>
-          </div>
-
-          {/* Recent Activity Placeholder */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-            <div className="space-y-3">
-              <div className="text-gray-500 text-center py-8">
-                <p>Your recent activity feed coming soon</p>
-                <p className="text-sm mt-2">Check back for your recent work updates and notifications</p>
-              </div>
-            </div>
-          </div>
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button 
+            onClick={() => navigate('/leave-requests/new')}
+            className="p-4 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-center font-medium"
+          >
+            <span className="block text-2xl mb-2">🏖️</span>
+            Apply Leave
+          </button>
+          <button 
+            onClick={() => navigate('/leave-requests/new')}
+            className="p-4 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-center font-medium"
+          >
+            <span className="block text-2xl mb-2">📝</span>
+            Create Leave Request
+          </button>
+          <button 
+            onClick={() => navigate('/attendance')}
+            className="p-4 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors text-center font-medium"
+          >
+            <span className="block text-2xl mb-2">✅</span>
+            Mark Attendance
+          </button>
         </div>
       </div>
     </div>

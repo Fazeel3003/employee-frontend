@@ -1,8 +1,10 @@
 import { useAuth } from '../context/AuthContext';
 
-function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onReject }) {
+function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onReject, canApprove }) {
   const { isAdmin, isHR, isManager, isUser } = useAuth();
-  const canApprove = isAdmin() || isHR() || isManager();
+  const canApproveActions = canApprove !== undefined 
+    ? canApprove 
+    : (isAdmin() || isHR() || isManager());
 
   const getEmployeeName = (empId, item) => {
     return item.first_name && item.last_name 
@@ -87,7 +89,7 @@ function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onR
               <td className="px-4 py-3 space-x-2">
   {request.approval_status === 'Pending' ? (
     <>
-      {canApprove && (
+      {canApproveActions && (
         <button
           onClick={() => onApprove(request.leave_id)}
           className="bg-green-500 text-white px-3 py-1 rounded-md 
@@ -96,7 +98,7 @@ function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onR
           Approve
         </button>
       )}
-      {canApprove && (
+      {canApproveActions && (
         <button
           onClick={() => onReject(request.leave_id)}
           className="bg-red-500 text-white px-3 py-1 rounded-md 

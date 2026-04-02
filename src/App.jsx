@@ -4,7 +4,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { Toaster } from "react-hot-toast";
 import Layout from "./layout/Layout";
-import DashboardPage from "./pages/DashboardPage";
+import DashboardRouter from "./components/DashboardRouter";
 import EmployeesPage from "./pages/EmployeesPage";
 import DepartmentPage from "./pages/DepartmentPage";
 import PositionsPage from "./pages/PositionsPage";
@@ -30,6 +30,7 @@ import TeamLeaveRequestsPage from "./pages/TeamLeaveRequestsPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import MyProjectsPage from "./pages/MyProjectsPage";
 import MyAttendancePage from "./pages/MyAttendancePage";
+import ProfilePage from "./pages/ProfilePage";
 
 // HR Pages
 import EmployeeManagementPage from "./pages/EmployeeManagementPage";
@@ -56,14 +57,14 @@ function App() {
               <Route path="/" element={
               <ProtectedRoute>
                 <Layout> 
-                  <DashboardPage />
+                  <DashboardRouter />
                 </Layout>
               </ProtectedRoute>
             } />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Layout>
-                  <DashboardPage />
+                  <DashboardRouter />
                 </Layout>
               </ProtectedRoute>
             } />
@@ -105,9 +106,9 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Admin, HR, Manager Routes */}
+            {/* Admin, Manager Routes */}
             <Route path="/projects" element={
-              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
+              <ProtectedRoute roles={['admin', 'manager']}>
                 <Layout>
                   <ProjectsPage />
                 </Layout>
@@ -122,6 +123,13 @@ function App() {
             } />
 
             {/* All Authenticated Users Routes */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Layout>
+                  <ProfilePage />
+                </Layout>
+              </ProtectedRoute>
+            } />
             <Route path="/attendance" element={
               <ProtectedRoute>
                 <Layout>
@@ -132,7 +140,7 @@ function App() {
 
             {/* Admin, HR, User, Manager Routes */}
             <Route path="/salary" element={
-              <ProtectedRoute roles={['admin', 'hr', 'user', 'manager']}>
+              <ProtectedRoute roles={['admin', 'hr', 'employee', 'manager']}>
                 <Layout>
                   <SalaryPage />
                 </Layout>

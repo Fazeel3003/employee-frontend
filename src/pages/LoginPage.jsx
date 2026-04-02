@@ -102,19 +102,6 @@ const LoginPage = () => {
     }
   };
 
-  // Handle demo login
-  const handleDemoLogin = (role = 'admin') => {
-    const demoCredentials = {
-      admin: { email: 'admin@company.com', password: 'admin123' },
-      manager: { email: 'manager@company.com', password: 'manager123' },
-      user: { email: 'user@company.com', password: 'user123' },
-    };
-
-    const credentials = demoCredentials[role];
-    if (credentials) {
-      setFormData(credentials);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -230,20 +217,8 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* Remember Me & Forgot Password */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
-              </label>
-            </div>
-
+          {/* Forgot Password */}
+          <div className="flex justify-end">
             <div className="text-sm">
               <Link
                 to="/forgot-password"
@@ -274,35 +249,6 @@ const LoginPage = () => {
             </button>
           </div>
 
-          {/* Demo Accounts */}
-          <div className="mt-6 border-t border-gray-200 pt-6">
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-3">Demo Accounts:</p>
-              <div className="flex justify-center space-x-2">
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('admin')}
-                  className="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded-md hover:bg-purple-200"
-                >
-                  Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('manager')}
-                  className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-md hover:bg-green-200"
-                >
-                  Manager
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('user')}
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200"
-                >
-                  User
-                </button>
-              </div>
-            </div>
-          </div>
         </form>
       </div>
     </div>

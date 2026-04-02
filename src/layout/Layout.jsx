@@ -2,6 +2,8 @@ import Sidebar from "./Sidebar";
 import Header from "./Header";
 
 const Layout = ({ children }) => {
+  console.log("Layout component rendered");
+  
   return (
     <div className="flex">
       <Sidebar />

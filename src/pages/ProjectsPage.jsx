@@ -9,10 +9,14 @@ import {
   updateProject,
   deleteProject
 } from "../api/projectService";
+import { projectFilters } from "../api/managerService"; // Import centralized filters
 import { useModal } from "../context/ModalContext";
+import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 
 function ProjectsPage() {
+  const { isAdmin, isManager, isHR } = useAuth();
+  const canCreateProject = isAdmin() || isManager();
   const [allProjects, setAllProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,6 +27,9 @@ function ProjectsPage() {
   const { showConfirmDelete, showSuccess, showError } = useModal();
 
   const itemsPerPage = 10;
+
+  // Calculate active projects count using centralized filter
+  const activeProjectsCount = allProjects.filter(projectFilters.isActive).length;
 
   const fetchProjects = async () => {
     try {
@@ -73,13 +80,17 @@ function ProjectsPage() {
     try {
       
       // Convert budget to number and ensure all fields are properly processed
+      const budget = data.budget !== undefined && data.budget !== null && data.budget !== ""
+        ? parseFloat(data.budget)
+        : null;
+
       const processedData = {
-        project_name: data.project_name?.trim() || "",
+        project_name: data.project_name?.toString().trim() || "",
         start_date: data.start_date || "",
         end_date: data.end_date || "",
-        budget: data.budget && data.budget.trim() !== "" && !isNaN(parseFloat(data.budget)) ? parseFloat(data.budget) : 0,
+        budget: budget,
         status: data.status || "Planned",
-        project_manager_id: data.project_manager_id && data.project_manager_id.trim() !== "" && !isNaN(parseInt(data.project_manager_id)) ? parseInt(data.project_manager_id) : 0
+        project_manager_id: data.project_manager_id?.toString().trim() !== "" && !isNaN(parseInt(data.project_manager_id)) ? parseInt(data.project_manager_id) : 0
       };
 
       if (editingProject) {
@@ -207,14 +218,27 @@ function ProjectsPage() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Projects</h2>
-
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <ProjectForm
-          key={formKey}
-          onSave={handleSave}
-          editingProject={editingProject}
-        />
+      
+      {/* Active Projects Stats - Same as Dashboard */}
+      <div className="bg-white shadow rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            <span className="font-semibold text-green-600">Active Projects: {activeProjectsCount}</span> 
+            <span className="mx-2">|</span>
+            <span>Total Projects: {allProjects.length}</span>
+          </div>
+        </div>
       </div>
+
+      {canCreateProject && (
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <ProjectForm
+            key={formKey}
+            onSave={handleSave}
+            editingProject={editingProject}
+          />
+        </div>
+      )}
 
       <div className="bg-white shadow rounded-lg p-6">
         {/* SEARCH BAR */}
@@ -267,7 +291,7 @@ function ProjectsPage() {
                 <Pagination
                   page={page}
                   totalPages={totalPagesFiltered}
-                  onPageChange={setPage}
+                  onPageChange={handlePageChange}
                 />
               </>
             )}

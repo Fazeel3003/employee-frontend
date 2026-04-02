@@ -1,4 +1,43 @@
+import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
+import axiosInstance from '../api/axiosInstance';
+
 function EmployeeTable({ employees, onDelete, onEdit }) {
+  const { isAdmin, isHR } = useAuth();
+  const canManageEmployees = isAdmin() || isHR();
+  const [departments, setDepartments] = useState([]);
+  const [positions, setPositions] = useState([]);
+
+  // Fetch departments and positions for mapping
+  useEffect(() => {
+    const fetchMappings = async () => {
+      try {
+        const [deptRes, posRes] = await Promise.all([
+          axiosInstance.get('/departments'),
+          axiosInstance.get('/positions')
+        ]);
+        setDepartments(Array.isArray(deptRes.data.data) ? deptRes.data.data : deptRes.data);
+        setPositions(Array.isArray(posRes.data.data) ? posRes.data.data : posRes.data);
+      } catch (error) {
+        console.error('Failed to fetch mappings:', error);
+      }
+    };
+    
+    fetchMappings();
+  }, []);
+
+  // Helper functions to get names by ID
+  const getDepartmentName = (deptId) => {
+    if (!deptId) return 'N/A';
+    const dept = departments.find(d => d.dept_id === parseInt(deptId));
+    return dept ? dept.dept_name : 'N/A';
+  };
+
+  const getPositionName = (positionId) => {
+    if (!positionId) return 'N/A';
+    const position = positions.find(p => p.position_id === parseInt(positionId));
+    return position ? position.position_title : 'N/A';
+  };
 
   // Format date to "Jan 09, 2022" format
   const formatDate = (dateString) => {
@@ -84,11 +123,11 @@ function EmployeeTable({ employees, onDelete, onEdit }) {
               </td>
               
               <td className="px-4 py-3 text-gray-600">
-                {emp.department?.name || emp.department_name || 'N/A'}
+                {getDepartmentName(emp.dept_id)}
               </td>
               
               <td className="px-4 py-3 text-gray-600">
-                {emp.position?.name || emp.position_name || 'N/A'}
+                {getPositionName(emp.position_id)}
               </td>
               
               <td className="px-4 py-3 text-gray-600">
@@ -103,19 +142,27 @@ function EmployeeTable({ employees, onDelete, onEdit }) {
 
               {/* Actions Column */}
               <td className="px-4 py-3 space-x-2">
-                <button
-                  onClick={() => onEdit(emp)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition-colors text-sm"
-                >
-                  Edit
-                </button>
+                {canManageEmployees ? (
+                  <>
+                    <button
+                      onClick={() => onEdit(emp)}
+                      className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      Edit
+                    </button>
 
-                <button
-                  onClick={() => onDelete(emp.emp_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors text-sm"
-                >
-                  Delete
-                </button>
+                    <button
+                      onClick={() => onDelete(emp.emp_id)}
+                      className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors text-sm"
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400">
+                    View only
+                  </span>
+                )}
               </td>
             </tr>
           ))}

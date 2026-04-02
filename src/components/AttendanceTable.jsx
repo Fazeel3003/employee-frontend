@@ -1,8 +1,23 @@
 function AttendanceTable({ attendance, employees, onEdit, onDelete }) {
   const getEmployeeName = (empId) => {
-    const employee = employees.find(emp => emp.emp_id === empId);
-    return employee ? `${employee.first_name} ${employee.last_name}` : `ID: ${empId}`;
+    if (!empId) return 'N/A';
+    
+    const employee = employees && employees.find(emp => emp.emp_id === empId);
+    if (employee) {
+      return `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || `ID: ${empId}`;
+    }
+    return `ID: ${empId}`;
   };
+
+  // Handle empty attendance array
+  if (!attendance || attendance.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <div className="text-lg font-medium">No attendance records found</div>
+        <div className="text-sm mt-2">Try adjusting your filters or check back later.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-x-auto">
@@ -19,43 +34,49 @@ function AttendanceTable({ attendance, employees, onEdit, onDelete }) {
         </thead>
 
         <tbody>
-          {attendance.map((record) => (
-            <tr key={record.attendance_id} className="border-t hover:bg-gray-50">
-              <td className="px-4 py-3">{getEmployeeName(record.emp_id)}</td>
-              <td className="px-4 py-3">
-                {record.attendance_date?.split("T")[0]}
-              </td>
-              <td className="px-4 py-3">{record.check_in}</td>
-              <td className="px-4 py-3">{record.check_out}</td>
-              <td className="px-4 py-3">
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  record.attendance_status === 'Present' ? 'bg-green-100 text-green-800' :
-                  record.attendance_status === 'Absent' ? 'bg-red-100 text-red-800' :
-                  record.attendance_status === 'Leave' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-blue-100 text-blue-800'
-                }`}>
-                  {record.attendance_status}
-                </span>
-              </td>
+          {attendance.map((record) => {
+            if (!record) return null;
+            
+            return (
+              <tr key={record.attendance_id || Math.random()} className="border-t hover:bg-gray-50">
+                <td className="px-4 py-3">{getEmployeeName(record.emp_id)}</td>
+                <td className="px-4 py-3">
+                  {record.attendance_date ? record.attendance_date.split("T")[0] : 'N/A'}
+                </td>
+                <td className="px-4 py-3">{record.check_in || 'N/A'}</td>
+                <td className="px-4 py-3">{record.check_out || 'N/A'}</td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    record.attendance_status === 'Present' ? 'bg-green-100 text-green-800' :
+                    record.attendance_status === 'Absent' ? 'bg-red-100 text-red-800' :
+                    record.attendance_status === 'Leave' ? 'bg-yellow-100 text-yellow-800' :
+                    record.attendance_status === 'Half Day' ? 'bg-blue-100 text-blue-800' :
+                    record.attendance_status === 'Late' ? 'bg-orange-100 text-orange-800' :
+                    record.attendance_status === 'Early Leave' ? 'bg-purple-100 text-purple-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {record.attendance_status || 'N/A'}
+                  </span>
+                </td>
 
-              <td className="px-4 py-3 space-x-2">
-                <button
-                  onClick={() => onEdit(record)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
-                >
-                  Edit
-                </button>
+                <td className="px-4 py-3 space-x-2">
+                  <button
+                    onClick={() => onEdit(record)}
+                    className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
+                  >
+                    Edit
+                  </button>
 
-                <button
-                  onClick={() => onDelete(record.attendance_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition"
-                >
-                  Delete
-                </button>
-              </td>
-
-            </tr>
-          ))}
+                  <button
+                    onClick={() => onDelete(record.attendance_id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

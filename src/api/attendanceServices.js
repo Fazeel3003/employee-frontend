@@ -1,8 +1,14 @@
 import axiosInstance from "./axiosInstance";
 
 export const getAttendance = async () => {
-  const response = await axiosInstance.get('/attendance');
-  return response.data;
+  try {
+    const response = await axiosInstance.get('/attendance');
+    console.log('Attendance API Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Get Attendance Error:', error);
+    throw error;
+  }
 };
 
 export const createAttendance = (data) => {

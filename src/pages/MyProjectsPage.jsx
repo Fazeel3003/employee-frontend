@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import axiosInstance from '../api/axiosInstance';
+import { getEmployeeProjects } from '../api/employeeProjectService';
 
 const MyProjectsPage = () => {
   const { user } = useAuth();
@@ -15,8 +16,8 @@ const MyProjectsPage = () => {
   const fetchMyProjects = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/v1/my-projects');
-      setProjects(response.data.data || []);
+      const response = await getEmployeeProjects();
+      setProjects(response.data?.data || response.data || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {

@@ -21,6 +21,7 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [managers, setManagers] = useState([]);
+  const [existingEmployees, setExistingEmployees] = useState([]);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
 
   // ===============================
@@ -32,19 +33,22 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
         setLoadingDropdowns(true);
         console.log("Fetching dropdown data...");
         
-        const [deptRes, posRes, mgrRes] = await Promise.all([
+        const [deptRes, posRes, mgrRes, empRes] = await Promise.all([
           axiosInstance.get('/departments'),
           axiosInstance.get('/positions'),
-          axiosInstance.get('/employees/managers')
+          axiosInstance.get('/employees/managers'),
+          axiosInstance.get('/employees')
         ]);
         
         console.log("Departments response:", deptRes.data);
         console.log("Positions response:", posRes.data);
         console.log("Managers response:", mgrRes.data);
+        console.log("Employees response:", empRes.data);
         
         setDepartments(Array.isArray(deptRes.data.data) ? deptRes.data.data : deptRes.data);
         setPositions(Array.isArray(posRes.data.data) ? posRes.data.data : posRes.data);
         setManagers(Array.isArray(mgrRes.data.data) ? mgrRes.data.data : mgrRes.data);
+        setExistingEmployees(Array.isArray(empRes.data.data) ? empRes.data.data : empRes.data);
         
       } catch (error) {
         console.error("Dropdown fetch error:", error);
@@ -90,8 +94,8 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
       newErrors.first_name = "First name is required";
     } else if (formData.first_name.trim().length < 2) {
       newErrors.first_name = "First name must be at least 2 characters";
-    } else if (!/^[a-zA-Z\s]+$/.test(formData.first_name.trim())) {
-      newErrors.first_name = "First name can only contain letters";
+    } else if (!/^[A-Za-z ]{2,}$/.test(formData.first_name.trim())) {
+      newErrors.first_name = "First name can only contain letters and spaces";
     }
 
     // Last Name validation
@@ -99,26 +103,47 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
       newErrors.last_name = "Last name is required";
     } else if (formData.last_name.trim().length < 2) {
       newErrors.last_name = "Last name must be at least 2 characters";
-    } else if (!/^[a-zA-Z\s]+$/.test(formData.last_name.trim())) {
-      newErrors.last_name = "Last name can only contain letters";
+    } else if (!/^[A-Za-z ]{2,}$/.test(formData.last_name.trim())) {
+      newErrors.last_name = "Last name can only contain letters and spaces";
     }
 
-    // Email validation
+    // Email validation (STRICT - only .com and .in domains)
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else {
-      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|in)$/;
       if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = "Please enter a valid email address";
+        newErrors.email = "Enter a valid email address (.com or .in only)";
       }
     }
 
-    // Phone validation (optional but if provided must be valid)
-    if (formData.phone && formData.phone.trim()) {
-      const phoneRegex = /^\+?[0-9\s\-\(\)]+$/;
+    // Phone validation (REQUIRED - exactly 10 digits)
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    } else {
+      const phoneRegex = /^[0-9]{10}$/;
       if (!phoneRegex.test(formData.phone.trim())) {
-        newErrors.phone = "Phone can only contain numbers, spaces, hyphens, and parentheses";
+        newErrors.phone = "Phone must be exactly 10 digits";
+      } else {
+        // Check for duplicate phone number
+        const duplicatePhone = existingEmployees.find(emp => 
+          emp.phone === formData.phone.trim() && 
+          emp.emp_id !== parseInt(editingEmployee?.emp_id || '0')
+        );
+        if (duplicatePhone) {
+          newErrors.phone = "Phone number already exists";
+        }
       }
+    }
+
+    // Department validation (REQUIRED)
+    if (!formData.dept_id) {
+      newErrors.dept_id = "Department is required";
+    }
+
+    // Position validation (REQUIRED)
+    if (!formData.position_id) {
+      newErrors.position_id = "Position is required";
     }
 
     // Hire Date validation
@@ -361,20 +386,23 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
               {errors.email && (
                 <p className="text-red-500 text-sm mt-1">{errors.email}</p>
               )}
+              <p className="text-xs text-gray-500 mt-1">Only .com and .in domains allowed</p>
             </div>
 
             {/* Phone */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone
+                Phone <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
                 id="phone"
                 name="phone"
-                placeholder="+91-XXXXXXXXXX"
+                placeholder="9876543210"
                 value={formData.phone}
                 onChange={handleChange}
+                required
+                maxLength={10}
                 className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.phone ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -382,6 +410,7 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
               {errors.phone && (
                 <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
               )}
+              <p className="text-xs text-gray-500 mt-1">Enter 10-digit phone number</p>
             </div>
           </div>
         </div>
@@ -435,7 +464,7 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
             {/* Department */}
             <div>
               <label htmlFor="dept_id" className="block text-sm font-medium text-gray-700 mb-1">
-                Department
+                Department <span className="text-red-500">*</span>
               </label>
               <select
                 id="dept_id"
@@ -443,7 +472,9 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
                 value={formData.dept_id ? parseInt(formData.dept_id) : ''}
                 onChange={handleChange}
                 disabled={loadingDropdowns}
-                className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 disabled:opacity-50"
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.dept_id ? 'border-red-500' : 'border-gray-300'
+                } disabled:opacity-50`}
               >
                 <option value="">
                   {loadingDropdowns ? 'Loading...' : 'Select Department...'}
@@ -454,12 +485,15 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
                   </option>
                 ))}
               </select>
+              {errors.dept_id && (
+                <p className="text-red-500 text-sm mt-1">{errors.dept_id}</p>
+              )}
             </div>
 
             {/* Position */}
             <div>
               <label htmlFor="position_id" className="block text-sm font-medium text-gray-700 mb-1">
-                Position
+                Position <span className="text-red-500">*</span>
               </label>
               <select
                 id="position_id"
@@ -467,7 +501,9 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
                 value={formData.position_id ? parseInt(formData.position_id) : ''}
                 onChange={handleChange}
                 disabled={loadingDropdowns}
-                className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 disabled:opacity-50"
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.position_id ? 'border-red-500' : 'border-gray-300'
+                } disabled:opacity-50`}
               >
                 <option value="">
                   {loadingDropdowns ? 'Loading...' : 'Select Position...'}
@@ -478,6 +514,9 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
                   </option>
                 ))}
               </select>
+              {errors.position_id && (
+                <p className="text-red-500 text-sm mt-1">{errors.position_id}</p>
+              )}
             </div>
 
             {/* Manager */}

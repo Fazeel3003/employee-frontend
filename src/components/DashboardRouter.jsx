@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import AdminDashboard from '../components/AdminDashboard';
+import DashboardPage from '../pages/DashboardPage';
 import ManagerDashboard from '../components/ManagerDashboard';
 import HRDashboard from '../components/HRDashboard';
 import EmployeeDashboard from '../components/EmployeeDashboard';
@@ -38,7 +38,7 @@ const DashboardRouter = () => {
 
   // 🔧 5. Correct Role-Based Rendering
   if (role === "admin") {
-    return <AdminDashboard />;
+    return <DashboardPage />;
   }
   if (role === "manager") {
     return <ManagerDashboard />;
