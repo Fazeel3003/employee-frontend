@@ -1,7 +1,7 @@
 // reportsService.js - Direct API calls to FastAPI Reports Microservice
 import axios from 'axios';
 
-const REPORTS_BASE_URL = 'http://localhost:8001/api/reports';
+const REPORTS_BASE_URL = '/api/reports';
 
 const reportsApi = axios.create({
     baseURL: REPORTS_BASE_URL,
