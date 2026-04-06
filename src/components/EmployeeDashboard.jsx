@@ -20,9 +20,12 @@ const EmployeeDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      console.log("Fetching dashboard data for employee...");
+      console.log("[EmployeeDashboard] Fetching dashboard data for employee...");
+      console.log("[EmployeeDashboard] User info:", { email: user?.email, role: user?.role });
       
-      // Use only attendance and leave APIs for employees
+      // Backend automatically filters data based on user role:
+      // - /attendance: Returns only logged-in employee's attendance (via req.filterByUser)
+      // - /leave-requests: Returns only logged-in employee's leave requests (via req.filterByUser)
       const [
         leaveRes,
         attendanceRes
@@ -39,37 +42,51 @@ const EmployeeDashboard = () => {
         ? (attendanceRes.value.data?.data || attendanceRes.value.data || [])
         : [];
       
-      console.log("Dashboard API responses:", {
-        leaveData,
-        attendanceData,
+      console.log("[EmployeeDashboard] API responses:", {
+        leaveCount: leaveData.length,
+        attendanceCount: attendanceData.length,
         errors: {
-          leave: leaveRes.status === 'rejected' ? leaveRes.reason.message : null,
-          attendance: attendanceRes.status === 'rejected' ? attendanceRes.reason.message : null
+          leave: leaveRes.status === 'rejected' ? leaveRes.reason?.message : null,
+          attendance: attendanceRes.status === 'rejected' ? attendanceRes.reason?.message : null
         }
       });
+      
+      // Helper function to format date consistently (copied from AttendancePage)
+      const formatDateLocal = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
       
       // Get today's date for filtering
       const today = new Date().toISOString().split('T')[0];
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       
-      // Calculate counts in frontend
-      const presentToday = attendanceData.filter(a => {
-        const attendanceDate = a.attendance_date?.split('T')[0];
-        return attendanceDate === today && a.attendance_status === 'Present';
-      }).length;
+      // Calculate counts using the same logic as AttendancePage
+      const presentToday = attendanceData.filter(a => 
+        formatDateLocal(a.attendance_date) === today && 
+        a.attendance_status === 'Present'
+      ).length;
+      
       const thisMonthAttendance = attendanceData.filter(a => {
         const attendanceDate = new Date(a.attendance_date);
         return attendanceDate.getMonth() === currentMonth && 
                attendanceDate.getFullYear() === currentYear &&
                a.attendance_status === 'Present';
       }).length;
-      const pendingLeaveRequests = leaveData.filter(l => l.status === 'Pending').length;
       
-      console.log("Calculated stats:", {
+      const pendingLeaveRequests = leaveData.filter(l => l.approval_status === 'Pending').length;
+      
+      console.log("[EmployeeDashboard] Calculated stats:", {
         presentToday,
         thisMonthAttendance,
-        pendingLeaveRequests
+        pendingLeaveRequests,
+        totalLeaveRecords: leaveData.length,
+        totalAttendanceRecords: attendanceData.length
       });
       
       setStats({
@@ -225,11 +242,11 @@ const EmployeeDashboard = () => {
             Apply Leave
           </button>
           <button 
-            onClick={() => navigate('/leave-requests/new')}
+            onClick={() => navigate('/salary')}
             className="p-4 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-center font-medium"
           >
-            <span className="block text-2xl mb-2">📝</span>
-            Create Leave Request
+            <span className="block text-2xl mb-2">💰</span>
+            View Salary History
           </button>
           <button 
             onClick={() => navigate('/attendance')}

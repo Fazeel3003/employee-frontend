@@ -10,8 +10,7 @@ const SignupPage = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    role: 'employee', // Default role
+    confirmPassword: ''
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -130,11 +129,6 @@ const SignupPage = () => {
       errors.confirmPassword = 'Passwords do not match';
     }
 
-    // Role validation
-    if (!formData.role) {
-      errors.role = 'Please select an account type';
-    }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -155,8 +149,7 @@ const SignupPage = () => {
       
       if (result.success) {
         // Show success message and redirect to login
-        const roleText = formData.role.charAt(0).toUpperCase() + formData.role.slice(1);
-        alert(`✅ ${roleText} account created successfully!\n\nYou can now login with your credentials.\n\nEmail: ${formData.email}\nRole: ${roleText}`);
+        alert(`✅ Employee account created successfully!\n\nYou can now login with your credentials.\n\nEmail: ${formData.email}`);
         
         // Clear any existing auth state to prevent loading issues
         clearError();
@@ -326,33 +319,6 @@ const SignupPage = () => {
                 />
                 {formErrors.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.confirmPassword}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Role Field */}
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Account Type
-              </label>
-              <div className="mt-1">
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    formErrors.role ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Select a role</option>
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="hr">HR</option>
-                  <option value="admin">Admin</option>
-                </select>
-                {formErrors.role && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.role}</p>
                 )}
               </div>
             </div>
