@@ -31,6 +31,7 @@ import MyProfilePage from "./pages/MyProfilePage";
 import MyProjectsPage from "./pages/MyProjectsPage";
 import MyAttendancePage from "./pages/MyAttendancePage";
 import ProfilePage from "./pages/ProfilePage";
+import SettingsPage from "./pages/SettingsPage";
 
 // HR Pages
 import EmployeeManagementPage from "./pages/EmployeeManagementPage";
@@ -127,6 +128,13 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ProfilePage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Layout>
+                  <SettingsPage />
                 </Layout>
               </ProtectedRoute>
             } />
