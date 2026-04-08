@@ -1,6 +1,8 @@
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import axiosInstance from '../api/axiosInstance';
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from './IconButton';
 
 function EmployeeTable({ employees, onDelete, onEdit }) {
   const { isAdmin, isHR } = useAuth();
@@ -144,19 +146,19 @@ function EmployeeTable({ employees, onDelete, onEdit }) {
               <td className="px-4 py-3 space-x-2">
                 {canManageEmployees ? (
                   <>
-                    <button
+                    <IconButton
+                      icon={Pencil}
                       onClick={() => onEdit(emp)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition-colors text-sm"
-                    >
-                      Edit
-                    </button>
+                      variant="primary"
+                      title="Edit Employee"
+                    />
 
-                    <button
+                    <IconButton
+                      icon={Trash2}
                       onClick={() => onDelete(emp.emp_id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors text-sm"
-                    >
-                      Delete
-                    </button>
+                      variant="danger"
+                      title="Delete Employee"
+                    />
                   </>
                 ) : (
                   <span className="text-xs text-gray-400">

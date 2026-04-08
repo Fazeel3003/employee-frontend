@@ -299,7 +299,7 @@ export const AuthProvider = ({ children }) => {
   const isManager = useCallback(() => hasRole('manager'), [hasRole]);
 
   // Check if user is regular user
-  const isUser = useCallback(() => hasRole('user'), [hasRole]);
+  const isUser = useCallback(() => hasRole('employee'), [hasRole]);
 
   // Check if user is HR
   const isHR = useCallback(() => hasRole('hr'), [hasRole]);

@@ -5,6 +5,7 @@ import DepartmentForm from "../components/DepartmentForm";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
 import { useModal } from "../context/ModalContext";
+import Modal from "../components/Modal";
 import {
   getDepartments,
   createDepartment,
@@ -18,6 +19,7 @@ function DepartmentsPage() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingDepartment, setEditingDepartment] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [page, setPage] = useState(1); 
   const { showConfirmDelete } = useModal();
 
@@ -72,6 +74,7 @@ function DepartmentsPage() {
   const handleSaveDepartment = useCallback(async (departmentData) => {
     if (!departmentData) {
       setEditingDepartment(null);
+      setIsModalOpen(false);
       return;
     }
 
@@ -107,6 +110,7 @@ function DepartmentsPage() {
       setPage(1);
       await fetchDepartments();
       setEditingDepartment(null);
+      setIsModalOpen(false);
 
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || "Failed to save department";
@@ -168,7 +172,13 @@ function DepartmentsPage() {
 
   const handleEditDepartment = useCallback((dept) => {
     setEditingDepartment(dept);
+    setIsModalOpen(true);
   }, []);
+
+  const handleAddDepartment = () => {
+    setEditingDepartment(null);
+    setIsModalOpen(true);
+  };
 
   // Initial load
   useEffect(() => {
@@ -177,13 +187,17 @@ function DepartmentsPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">Departments</h2>
-
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <DepartmentForm
-          onSave={handleSaveDepartment}
-          editingDepartment={editingDepartment}
-        />
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Departments</h2>
+        <button
+          onClick={handleAddDepartment}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Department
+        </button>
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
@@ -255,6 +269,21 @@ function DepartmentsPage() {
           </>
         )}
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingDepartment(null);
+        }}
+        title={editingDepartment ? "Edit Department" : "Add Department"}
+        size="md"
+      >
+        <DepartmentForm
+          onSave={handleSaveDepartment}
+          editingDepartment={editingDepartment}
+        />
+      </Modal>
     </div>
   );
 }

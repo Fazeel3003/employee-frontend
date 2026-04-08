@@ -1,3 +1,6 @@
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from './IconButton';
+
 function AttendanceTable({ attendance, employees, onEdit, onDelete }) {
   const getEmployeeName = (empId) => {
     if (!empId) return 'N/A';
@@ -60,19 +63,19 @@ function AttendanceTable({ attendance, employees, onEdit, onDelete }) {
                 </td>
 
                 <td className="px-4 py-3 space-x-2">
-                  <button
+                  <IconButton
+                    icon={Pencil}
                     onClick={() => onEdit(record)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
-                  >
-                    Edit
-                  </button>
+                    variant="primary"
+                    title="Edit Attendance"
+                  />
 
-                  <button
+                  <IconButton
+                    icon={Trash2}
                     onClick={() => onDelete(record.attendance_id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition"
-                  >
-                    Delete
-                  </button>
+                    variant="danger"
+                    title="Delete Attendance"
+                  />
                 </td>
               </tr>
             );

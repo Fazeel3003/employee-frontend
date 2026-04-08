@@ -55,77 +55,100 @@ function AttendanceForm({ onSave, editingAttendance, employees, canManageAll }) 
 
   return (
     <div>
-
-      <h3 className="text-lg font-semibold mb-4">
-        {editingAttendance ? "Update Attendance" : "Create Attendance"}
-      </h3>
-
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-5 gap-4"
+        className="space-y-4"
       >
 
         {canManageAll && (
-          <select
-            name="emp_id"
-            value={formData.emp_id}
-            onChange={handleChange}
-            required
-            className="border px-3 py-2 rounded-md appearance-none bg-white"
-          >
-            <option value="">Employee ▼</option>
-            {employees.map((emp) => (
-              <option key={emp.emp_id} value={emp.emp_id}>
-                {emp.first_name} {emp.last_name}
-              </option>
-            ))}
-          </select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Employee <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="emp_id"
+              value={formData.emp_id}
+              onChange={handleChange}
+              required
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Employee</option>
+              {employees.map((emp) => (
+                <option key={emp.emp_id} value={emp.emp_id}>
+                  {emp.first_name} {emp.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
 
-        <input
-          type="date"
-          name="attendance_date"
-          value={formData.attendance_date}
-          onChange={handleChange}
-          required
-          className="border px-3 py-2 rounded-md"
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Attendance Date <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            name="attendance_date"
+            value={formData.attendance_date}
+            onChange={handleChange}
+            required
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <input
-          type="time"
-          name="check_in"
-          value={formData.check_in}
-          onChange={handleChange}
-          className="border px-3 py-2 rounded-md"
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Check In
+            </label>
+            <input
+              type="time"
+              name="check_in"
+              value={formData.check_in}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        <input
-          type="time"
-          name="check_out"
-          value={formData.check_out}
-          onChange={handleChange}
-          className="border px-3 py-2 rounded-md"
-        />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Check Out
+            </label>
+            <input
+              type="time"
+              name="check_out"
+              value={formData.check_out}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
 
-        <select
-          name="attendance_status"
-          value={formData.attendance_status}
-          onChange={handleChange}
-          className="border px-3 py-2 rounded-md"
-        >
-          <option value="Present">Present</option>
-          <option value="Absent">Absent</option>
-          <option value="Leave">Leave</option>
-          <option value="Half Day">Half Day</option>
-        </select>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Status <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="attendance_status"
+            value={formData.attendance_status}
+            onChange={handleChange}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+            <option value="Leave">Leave</option>
+            <option value="Half Day">Half Day</option>
+          </select>
+        </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded-md md:col-span-5"
-        >
-          {editingAttendance ? "Update Attendance" : "Create Attendance"}
-        </button>
-
+        <div className="flex gap-3 pt-4 border-t">
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
+          >
+            {editingAttendance ? "Update Attendance" : "Mark Attendance"}
+          </button>
+        </div>
       </form>
     </div>
   );

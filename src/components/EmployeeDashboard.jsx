@@ -2,10 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
+import Modal from './Modal';
+import LeaveForm from './LeaveForm';
+import toast from 'react-hot-toast';
+import { createLeaveRequest } from '../api/leaveService';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   
   const [stats, setStats] = useState({
     presentToday: 0,
@@ -128,6 +133,40 @@ const EmployeeDashboard = () => {
     const name = getDisplayName();
     return name.charAt(0).toUpperCase();
   };
+
+  const handleApplyLeave = () => {
+    setIsLeaveModalOpen(true);
+  };
+
+  const handleSaveLeave = async (data) => {
+    try {
+      await createLeaveRequest(data);
+      toast.success('Leave request submitted successfully!', {
+        duration: 4000,
+        style: {
+          background: '#10B981',
+          color: '#fff',
+          fontWeight: '600',
+          borderRadius: '10px',
+          padding: '16px 24px',
+        }
+      });
+      setIsLeaveModalOpen(false);
+      // Refresh dashboard data
+      fetchDashboardData();
+    } catch (error) {
+      toast.error('Failed to submit leave request. Try again.', {
+        duration: 4000,
+        style: {
+          background: '#EF4444',
+          color: '#fff',
+          fontWeight: '600',
+          borderRadius: '10px',
+          padding: '16px 24px',
+        }
+      });
+    }
+  };
   const StatCard = ({ title, value, icon, color = 'blue' }) => {
     const colorClasses = {
       blue: 'bg-blue-500',
@@ -235,7 +274,7 @@ const EmployeeDashboard = () => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button 
-            onClick={() => navigate('/leave-requests/new')}
+            onClick={handleApplyLeave}
             className="p-4 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-center font-medium"
           >
             <span className="block text-2xl mb-2">🏖️</span>
@@ -252,11 +291,26 @@ const EmployeeDashboard = () => {
             onClick={() => navigate('/attendance')}
             className="p-4 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors text-center font-medium"
           >
-            <span className="block text-2xl mb-2">✅</span>
-            Mark Attendance
+            <span className="block text-2xl mb-2">👁️</span>
+            View Attendance
           </button>
         </div>
       </div>
+
+      {/* Leave Application Modal */}
+      <Modal
+        isOpen={isLeaveModalOpen}
+        onClose={() => setIsLeaveModalOpen(false)}
+        title="Apply for Leave"
+        size="md"
+      >
+        <LeaveForm
+          onSave={handleSaveLeave}
+          editingLeave={null}
+          employees={[]}
+          canManageAll={false}
+        />
+      </Modal>
     </div>
   );
 };

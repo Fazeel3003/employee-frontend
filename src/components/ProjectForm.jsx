@@ -101,80 +101,103 @@ function ProjectForm({ onSave, editingProject }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">
-        {editingProject ? "Edit Project" : "Add Project"}
-      </h3>
-
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        className="space-y-4"
       >
-        <input
-          type="text"
-          name="project_name"
-          placeholder="Project Name"
-          value={formData.project_name}
-          onChange={handleChange}
-          required
-          className="border px-3 py-2 rounded"
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Project Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="project_name"
+            placeholder="Enter project name"
+            value={formData.project_name}
+            onChange={handleChange}
+            required
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <input
-          type="date"
-          name="start_date"
-          value={formData.start_date}
-          onChange={handleChange}
-          className="border px-3 py-2 rounded"
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              name="start_date"
+              value={formData.start_date}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        <input
-          type="date"
-          name="end_date"
-          value={formData.end_date}
-          onChange={handleChange}
-          className="border px-3 py-2 rounded"
-        />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              name="end_date"
+              value={formData.end_date}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
 
-        <input
-          type="text"
-          name="budget"
-          placeholder="Enter budget amount"
-          value={formData.budget}
-          onChange={handleChange}
-          onKeyDown={(e) => {
-            if (e.key === "." || e.key === "-") {
-              e.preventDefault();
-            }
-          }}
-          min="0"
-          className="border px-3 py-2 rounded"
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Budget
+            </label>
+            <input
+              type="text"
+              name="budget"
+              placeholder="e.g. 100000"
+              value={formData.budget}
+              onChange={handleChange}
+              onKeyDown={(e) => {
+                if (e.key === "." || e.key === "-") {
+                  e.preventDefault();
+                }
+              }}
+              min="0"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        <select
-          name="status"
-          value={formData.status}
-          onChange={handleChange}
-          className="border px-3 py-2 rounded"
-        >
-          <option>Planned</option>
-          <option>In Progress</option>
-          <option>Completed</option>
-          <option>Cancelled</option>
-        </select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option>Planned</option>
+              <option>In Progress</option>
+              <option>Completed</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+        </div>
 
-        {/* Project Manager Field */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Project Manager
           </label>
           
           {isAdmin() ? (
-            // Admin sees dropdown of all managers
             <select
               name="project_manager_id"
               value={formData.project_manager_id || ""}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 border-gray-300"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Project Manager</option>
               {managers.map(mgr => (
@@ -184,8 +207,7 @@ function ProjectForm({ onSave, editingProject }) {
               ))}
             </select>
           ) : isManager() ? (
-            // Manager sees read-only field with their name
-            <div className="w-full border px-3 py-2 rounded-md bg-gray-100 text-gray-600 text-sm cursor-not-allowed border-gray-300 flex items-center justify-between">
+            <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 text-gray-600 text-sm cursor-not-allowed flex items-center justify-between">
               <span>
                 {managerName || user?.name || 'You'} 
                 <span className="text-gray-400 ml-1">(You)</span>
@@ -197,12 +219,14 @@ function ProjectForm({ onSave, editingProject }) {
           ) : null}
         </div>
 
-        <button
-          type="submit"
-          className="md:col-span-3 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
-          {editingProject ? "Update Project" : "Create Project"}
-        </button>
+        <div className="flex gap-3 pt-4 border-t">
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
+          >
+            {editingProject ? "Update Project" : "Add Project"}
+          </button>
+        </div>
       </form>
     </div>
   );

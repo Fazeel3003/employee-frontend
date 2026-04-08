@@ -1,4 +1,6 @@
 import CurrencyDisplay from './CurrencyDisplay';
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from './IconButton';
 
 function PositionTable({ positions, onEdit, onDelete }) {
   return (
@@ -31,19 +33,19 @@ function PositionTable({ positions, onEdit, onDelete }) {
               </td>
 
               <td className="px-4 py-3 space-x-2">
-                <button
+                <IconButton
+                  icon={Pencil}
                   onClick={() => onEdit(pos)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded"
-                >
-                  Edit
-                </button>
+                  variant="primary"
+                  title="Edit Position"
+                />
 
-                <button
+                <IconButton
+                  icon={Trash2}
                   onClick={() => onDelete(pos.position_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded"
-                >
-                  Delete
-                </button>
+                  variant="danger"
+                  title="Delete Position"
+                />
               </td>
 
             </tr>

@@ -4,9 +4,12 @@ import AttendanceTable from "../components/AttendanceTable";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
 import { useModal } from "../context/ModalContext";
+import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axiosInstance";
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from '../components/IconButton';
 import {
   getAttendance,
   createAttendance,
@@ -25,6 +28,7 @@ function AttendancePage() {
   const [searchStatus, setSearchStatus] = useState('all');
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     emp_id: '',
     attendance_date: new Date().toISOString().split('T')[0],
@@ -214,7 +218,6 @@ function AttendancePage() {
         setCurrentPage(1);
       }
 
-      // Reset form and refetch
       setFormData({
         emp_id: '',
         attendance_date: new Date().toISOString().split('T')[0],
@@ -223,8 +226,8 @@ function AttendancePage() {
         attendance_status: 'Present'
       });
       
-      // Refetch attendance data
       await refetchAttendance();
+      setIsModalOpen(false);
 
     } catch (error) {
       console.error('Save attendance error:', error);
@@ -265,6 +268,20 @@ function AttendancePage() {
       check_out: record.check_out || '',
       attendance_status: record.attendance_status
     });
+    setIsModalOpen(true);
+  };
+
+  const handleAddAttendance = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    setFormData({
+      emp_id: '',
+      attendance_date: new Date().toISOString().split('T')[0],
+      check_in: '',
+      check_out: '',
+      attendance_status: 'Present'
+    });
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -353,7 +370,20 @@ function AttendancePage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">Attendance Management</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Attendance Management</h2>
+        {canManageAll && (
+          <button
+            onClick={handleAddAttendance}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Mark Attendance
+          </button>
+        )}
+      </div>
 
       {/* SUMMARY STATS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -374,18 +404,6 @@ function AttendancePage() {
           <div className="text-2xl font-bold text-gray-600">{todayStats.total}</div>
         </div>
       </div>
-
-      {/* FORM */}
-      {canManageAll && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <AttendanceForm
-            onSave={handleSave}
-            editingAttendance={isEditing ? { attendance_id: editingId, ...formData } : null}
-            employees={employees}
-            canManageAll={canManageAll}
-          />
-        </div>
-      )}
 
       {/* TABLE */}
       <div className="bg-white shadow rounded-lg p-6">
@@ -513,22 +531,20 @@ function AttendancePage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             {canManageAll ? (
-                              <>
-                                <button
+                              <div className="flex gap-2">
+                                <IconButton
+                                  icon={Pencil}
                                   onClick={() => handleEdit(record)}
-                                  className="bg-blue-500 text-white px-3 py-1 rounded-md 
-                                    hover:bg-blue-600 text-sm mr-3"
-                                >
-                                  Edit
-                                </button>
-                                <button
+                                  variant="primary"
+                                  title="Edit Attendance"
+                                />
+                                <IconButton
+                                  icon={Trash2}
                                   onClick={() => handleDelete(record.attendance_id)}
-                                  className="bg-red-500 text-white px-3 py-1 rounded-md 
-                                    hover:bg-red-600 text-sm"
-                                >
-                                  Delete
-                                </button>
-                              </>
+                                  variant="danger"
+                                  title="Delete Attendance"
+                                />
+                              </div>
                             ) : (
                               <span className="text-gray-400 text-sm italic">No actions available</span>
                             )}
@@ -549,6 +565,26 @@ function AttendancePage() {
           </>
         )}
       </div>
+
+      {/* MODAL */}
+      {canManageAll && (
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            handleCancelEdit();
+          }}
+          title={isEditing ? "Update Attendance" : "Mark Attendance"}
+          size="md"
+        >
+          <AttendanceForm
+            onSave={handleSave}
+            editingAttendance={isEditing ? { attendance_id: editingId, ...formData } : null}
+            employees={employees}
+            canManageAll={canManageAll}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

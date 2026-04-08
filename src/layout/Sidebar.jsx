@@ -1,6 +1,7 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ROLES } from "../constants/roles";
+import { LogOut } from "lucide-react";
 
 function Sidebar() {
   const linkClass =
@@ -9,7 +10,13 @@ function Sidebar() {
   const activeClass =
     "bg-gray-800 text-white";
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   console.log("Sidebar rendered, user:", user);
   console.log("Sidebar user role:", user?.role);
@@ -32,10 +39,10 @@ function Sidebar() {
   );
 
   return (
-    <div className="w-60 bg-gray-900 text-white min-h-screen p-4">
+    <div className="w-60 bg-gray-900 text-white min-h-screen p-4 flex flex-col">
       <h2 className="text-xl font-bold mb-6">EMS</h2>
 
-      <nav className="flex flex-col gap-2">
+      <nav className="flex flex-col gap-2 flex-1">
         {filteredMenuItems.map((item) => (
           <NavLink
             key={item.to}
@@ -48,6 +55,16 @@ function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      <div className="mt-auto pt-4 border-t border-gray-700">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-4 py-2 rounded hover:bg-gray-700 text-left"
+        >
+          <LogOut size={18} />
+          <span>Logout</span>
+        </button>
+      </div>
     </div>
   );
 }

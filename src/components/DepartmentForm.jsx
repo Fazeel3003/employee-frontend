@@ -112,13 +112,9 @@ function DepartmentForm({ onSave, editingDepartment }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">
-        {editingDepartment ? "Edit Department" : "Add Department"}
-      </h3>
-
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        className="space-y-4"
       >
 
         <div>
@@ -180,7 +176,7 @@ function DepartmentForm({ onSave, editingDepartment }) {
           )}
         </div>
 
-        <div className="md:col-span-3">
+        <div className="flex gap-3 pt-4 border-t">
           <button
             type="submit"
             className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"

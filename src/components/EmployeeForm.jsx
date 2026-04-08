@@ -287,10 +287,6 @@ function EmployeeForm({ onEmployeeAdded, editingEmployee }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-6">
-        {editingEmployee ? "Edit Employee" : "Add Employee"}
-      </h3>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* SECTION 1 — Personal Information */}

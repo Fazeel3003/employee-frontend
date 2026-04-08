@@ -71,25 +71,20 @@ function SalaryForm({ onSave, editingSalary, employees }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">
-        {editingSalary ? "Edit Salary Record" : "Add Salary Record"}
-      </h3>
-
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        className="space-y-4"
       >
-        {/* Employee Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Employee *
+            Employee <span className="text-red-500">*</span>
           </label>
           <select
             name="emp_id"
             value={formData.emp_id}
             onChange={handleChange}
             required
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select Employee</option>
             {employees.map(emp => (
@@ -100,78 +95,77 @@ function SalaryForm({ onSave, editingSalary, employees }) {
           </select>
         </div>
 
-        {/* Salary Amount */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Salary Amount *
-          </label>
-          <input
-            type="text"
-            name="salary_amount"
-            placeholder="0"
-            value={formData.salary_amount}
-            onChange={handleChange}
-            onKeyDown={(e) => {
-              if (e.key === "." || e.key === "-") {
-                e.preventDefault();
-              }
-            }}
-            required
-            min="0"
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Salary Amount <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="salary_amount"
+              placeholder="e.g. 50000"
+              value={formData.salary_amount}
+              onChange={handleChange}
+              onKeyDown={(e) => {
+                if (e.key === "." || e.key === "-") {
+                  e.preventDefault();
+                }
+              }}
+              required
+              min="0"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
         </div>
 
-        {/* Effective From */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Effective From *
-          </label>
-          <input
-            type="date"
-            name="effective_from"
-            value={formData.effective_from}
-            onChange={handleChange}
-            required
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Effective From <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              name="effective_from"
+              value={formData.effective_from}
+              onChange={handleChange}
+              required
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Effective To
+            </label>
+            <input
+              type="date"
+              name="effective_to"
+              value={formData.effective_to}
+              onChange={handleChange}
+              min={formData.effective_from}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Leave empty if currently active</p>
+          </div>
         </div>
 
-        {/* Effective To */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Effective To
-          </label>
-          <input
-            type="date"
-            name="effective_to"
-            value={formData.effective_to}
-            onChange={handleChange}
-            min={formData.effective_from}
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-          <p className="text-xs text-gray-500 mt-1">Leave empty if currently active</p>
-        </div>
-
-        {/* Status */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Status *
-          </label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="Pending">Pending</option>
-          </select>
-        </div>
-
-        {/* Change Reason */}
-        <div className="lg:col-span-3">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Change Reason
           </label>
@@ -181,15 +175,14 @@ function SalaryForm({ onSave, editingSalary, employees }) {
             value={formData.change_reason}
             onChange={handleChange}
             rows={3}
-            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        {/* Submit Button */}
-        <div className="lg:col-span-3">
+        <div className="flex gap-3 pt-4 border-t">
           <button
             type="submit"
-            className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
           >
             {editingSalary ? "Update Salary Record" : "Add Salary Record"}
           </button>

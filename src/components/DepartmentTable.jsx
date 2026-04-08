@@ -1,4 +1,6 @@
 import CurrencyDisplay from './CurrencyDisplay';
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from './IconButton';
 
 function DepartmentTable({ departments, onEdit, onDelete }) {
   return (
@@ -26,19 +28,19 @@ function DepartmentTable({ departments, onEdit, onDelete }) {
               </td>
 
               <td className="px-4 py-3 space-x-2">
-                <button
+                <IconButton
+                  icon={Pencil}
                   onClick={() => onEdit(dept)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
-                >
-                  Edit
-                </button>
+                  variant="primary"
+                  title="Edit Department"
+                />
 
-                <button
+                <IconButton
+                  icon={Trash2}
                   onClick={() => onDelete(dept.dept_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
-                >
-                  Delete
-                </button>
+                  variant="danger"
+                  title="Delete Department"
+                />
               </td>
 
             </tr>

@@ -1,3 +1,6 @@
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from './IconButton';
+
 function EmployeeProjectTable({ assignments, onEdit, onDelete }) {
   return (
     <div className="overflow-x-auto">
@@ -36,21 +39,19 @@ function EmployeeProjectTable({ assignments, onEdit, onDelete }) {
               </td>
 
               <td className="px-4 py-3 space-x-2">
-
-                <button
+                <IconButton
+                  icon={Pencil}
                   onClick={() => onEdit(a)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded"
-                >
-                  Edit
-                </button>
+                  variant="primary"
+                  title="Edit Assignment"
+                />
 
-                <button
+                <IconButton
+                  icon={Trash2}
                   onClick={() => onDelete(a.assignment_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded"
-                >
-                  Delete
-                </button>
-
+                  variant="danger"
+                  title="Delete Assignment"
+                />
               </td>
             </tr>
           ))}

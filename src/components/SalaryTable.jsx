@@ -1,6 +1,8 @@
 import CurrencyDisplay from './CurrencyDisplay';
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from './IconButton';
 
-function SalaryTable({ salaryHistory, employees, onDelete, onEdit }) {
+function SalaryTable({ salaryHistory, employees, onDelete, onEdit, canManageAll = false }) {
   const getEmployeeName = (empId) => {
     const employee = employees.find(emp => emp.emp_id === empId);
     return employee ? `${employee.first_name} ${employee.last_name}` : `ID: ${empId}`;
@@ -45,19 +47,25 @@ function SalaryTable({ salaryHistory, employees, onDelete, onEdit }) {
                 {record.created_at?.split("T")[0]}
               </td>
               <td className="px-4 py-3 space-x-2">
-                <button
-                  onClick={() => onEdit(record)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
-                >
-                  Edit
-                </button>
+                {canManageAll ? (
+                  <>
+                    <IconButton
+                      icon={Pencil}
+                      onClick={() => onEdit(record)}
+                      variant="primary"
+                      title="Edit Salary Record"
+                    />
 
-                <button
-                  onClick={() => onDelete(record.salary_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition"
-                >
-                  Delete
-                </button>
+                    <IconButton
+                      icon={Trash2}
+                      onClick={() => onDelete(record.salary_id)}
+                      variant="danger"
+                      title="Delete Salary Record"
+                    />
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400">View only</span>
+                )}
               </td>
             </tr>
           ))}

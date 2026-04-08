@@ -35,7 +35,7 @@ function LeaveForm({ onSave, editingLeave, employees, canManageAll }) {
 
   useEffect(() => {
     if (!canManageAll) {
-      axiosInstance.get('/employees/me')
+      axiosInstance.get('/auth/me')
         .then(res => setUserEmpId(res.data.data?.emp_id))
         .catch(err => console.error('Could not fetch emp_id', err));
     }
@@ -85,86 +85,109 @@ function LeaveForm({ onSave, editingLeave, employees, canManageAll }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">
-        {editingLeave ? "Update Leave Request" : "Create Leave Request"}
-      </h3>
-
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        className="space-y-4"
       >
         {canManageAll && (
-        <select
-          name="emp_id"
-          value={formData.emp_id}
-          onChange={handleChange}
-          required
-          className="border px-3 py-2 rounded-md appearance-none bg-white"
-        >
-          <option value="">Select Employee ▼</option>
-          {employees.map((emp) => (
-            <option key={emp.emp_id} value={emp.emp_id}>
-              {emp.first_name} {emp.last_name}
-            </option>
-          ))}
-        </select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Employee <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="emp_id"
+              value={formData.emp_id}
+              onChange={handleChange}
+              required
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Employee</option>
+              {employees.map((emp) => (
+                <option key={emp.emp_id} value={emp.emp_id}>
+                  {emp.first_name} {emp.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
 
-        <select
-          name="leave_type"
-          value={formData.leave_type}
-          onChange={handleChange}
-          required
-          className="border px-3 py-2 rounded-md appearance-none bg-white"
-        >
-          {leaveTypes.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.icon} {type.label}
-            </option>
-          ))}
-        </select>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Leave Type <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="leave_type"
+            value={formData.leave_type}
+            onChange={handleChange}
+            required
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {leaveTypes.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.icon} {type.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <input
-          type="date"
-          name="start_date"
-          value={formData.start_date}
-          onChange={handleChange}
-          required
-          className="border px-3 py-2 rounded-md"
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              name="start_date"
+              value={formData.start_date}
+              onChange={handleChange}
+              required
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-        <input
-          type="date"
-          name="end_date"
-          value={formData.end_date}
-          onChange={handleChange}
-          required
-          min={getMinEndDate()}
-          className="border px-3 py-2 rounded-md"
-        />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              name="end_date"
+              value={formData.end_date}
+              onChange={handleChange}
+              required
+              min={getMinEndDate()}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
 
-        <textarea
-          name="reason"
-          value={formData.reason}
-          onChange={handleChange}
-          placeholder="Reason for leave request"
-          maxLength="255"
-          rows="3"
-          className="border px-3 py-2 rounded-md md:col-span-2 resize-none"
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Reason
+          </label>
+          <textarea
+            name="reason"
+            value={formData.reason}
+            onChange={handleChange}
+            placeholder="Reason for leave request"
+            maxLength="255"
+            rows="3"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+        </div>
 
-        <div className="flex gap-2 md:col-span-2">
+        <div className="flex gap-3 pt-4 border-t">
           <button
             type="submit"
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
           >
-            {editingLeave ? "Update Request" : "Create Request"}
+            {editingLeave ? "Update Request" : "Submit Request"}
           </button>
 
           <button
             type="button"
             onClick={handleCancel}
-            className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-md font-medium transition-colors"
           >
             Cancel
           </button>

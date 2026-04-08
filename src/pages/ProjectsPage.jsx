@@ -3,13 +3,14 @@ import ProjectForm from "../components/ProjectForm";
 import ProjectTable from "../components/ProjectTable";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
+import Modal from "../components/Modal";
 import {
   getProjects,
   createProject,
   updateProject,
   deleteProject
 } from "../api/projectService";
-import { projectFilters } from "../api/managerService"; // Import centralized filters
+import { projectFilters } from "../api/managerService";
 import { useModal } from "../context/ModalContext";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
@@ -23,6 +24,7 @@ function ProjectsPage() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingProject, setEditingProject] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const { showConfirmDelete, showSuccess, showError } = useModal();
 
@@ -79,7 +81,6 @@ function ProjectsPage() {
   const handleSave = async (data) => {
     try {
       
-      // Convert budget to number and ensure all fields are properly processed
       const budget = data.budget !== undefined && data.budget !== null && data.budget !== ""
         ? parseFloat(data.budget)
         : null;
@@ -109,7 +110,6 @@ function ProjectsPage() {
       } else {
         const result = await createProject(processedData);
         
-        // Reset form by incrementing key AFTER successful creation
         setFormKey(prev => prev + 1);
         toast.success('Project added successfully!', {
           duration: 4000,
@@ -123,10 +123,10 @@ function ProjectsPage() {
         });
       }
 
-      // Reset search and page
       setSearchQuery('');
       setPage(1);
       await fetchProjects();
+      setIsModalOpen(false);
     } catch (error) {
       console.error("Frontend save error:", error);
       toast.error('Failed to save project. Try again.', {
@@ -185,6 +185,12 @@ function ProjectsPage() {
 
   const handleEdit = (project) => {
     setEditingProject(project);
+    setIsModalOpen(true);
+  };
+
+  const handleAddProject = () => {
+    setEditingProject(null);
+    setIsModalOpen(true);
   };
 
   const handleSearch = (e) => {
@@ -217,9 +223,21 @@ function ProjectsPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">Projects</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Projects</h2>
+        {canCreateProject && (
+          <button
+            onClick={handleAddProject}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Project
+          </button>
+        )}
+      </div>
       
-      {/* Active Projects Stats - Same as Dashboard */}
       <div className="bg-white shadow rounded-lg p-4 mb-6">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
@@ -229,16 +247,6 @@ function ProjectsPage() {
           </div>
         </div>
       </div>
-
-      {canCreateProject && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <ProjectForm
-            key={formKey}
-            onSave={handleSave}
-            editingProject={editingProject}
-          />
-        </div>
-      )}
 
       <div className="bg-white shadow rounded-lg p-6">
         {/* SEARCH BAR */}
@@ -298,6 +306,24 @@ function ProjectsPage() {
           </>
         )}
       </div>
+
+      {canCreateProject && (
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingProject(null);
+          }}
+          title={editingProject ? "Edit Project" : "Add Project"}
+          size="lg"
+        >
+          <ProjectForm
+            key={formKey}
+            onSave={handleSave}
+            editingProject={editingProject}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

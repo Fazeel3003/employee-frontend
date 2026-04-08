@@ -4,8 +4,11 @@ import EmployeeProjectTable from "../components/EmployeeProjectTable";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/Pagination";
 import { useModal } from "../context/ModalContext";
+import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from '../components/IconButton';
 import {
   getEmployeeProjects,
   createEmployeeProject,
@@ -26,6 +29,7 @@ function EmployeeProjectsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     emp_id: '',
     project_id: '',
@@ -117,7 +121,6 @@ function EmployeeProjectsPage() {
         setCurrentPage(1);
       }
 
-      // Reset form and refetch
       setFormData({
         emp_id: '',
         project_id: '',
@@ -127,9 +130,9 @@ function EmployeeProjectsPage() {
         released_on: ''
       });
       
-      // Refetch assignments
       const assignRes = await getEmployeeProjects();
       setAssignments(assignRes.data?.data || assignRes.data || []);
+      setIsModalOpen(false);
 
     } catch (error) {
       console.error('Save assignment error:', error);
@@ -157,6 +160,21 @@ function EmployeeProjectsPage() {
       assigned_on: assignment.assigned_on || '',
       released_on: assignment.released_on || ''
     });
+    setIsModalOpen(true);
+  };
+
+  const handleAddAssignment = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    setFormData({
+      emp_id: '',
+      project_id: '',
+      role_name: '',
+      allocation_percent: 100,
+      assigned_on: '',
+      released_on: ''
+    });
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -227,14 +245,17 @@ function EmployeeProjectsPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">Employee Project Assignments</h2>
-
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <EmployeeProjectForm
-          onSave={handleSave}
-          editingAssignment={isEditing ? assignments.find(a => a.assignment_id === editingId) : null}
-          onCancel={handleCancelEdit}
-        />
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Employee Project Assignments</h2>
+        <button
+          onClick={handleAddAssignment}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Assign to Project
+        </button>
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
@@ -343,20 +364,20 @@ function EmployeeProjectsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button
-                              onClick={() => handleEdit(assignment)}
-                              className="bg-blue-500 text-white px-3 py-1 rounded-md 
-                                hover:bg-blue-600 text-sm mr-3"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(assignment.assignment_id)}
-                              className="bg-red-500 text-white px-3 py-1 rounded-md 
-                                hover:bg-red-600 text-sm"
-                            >
-                              Delete
-                            </button>
+                            <div className="flex gap-2">
+                              <IconButton
+                                icon={Pencil}
+                                onClick={() => handleEdit(assignment)}
+                                variant="primary"
+                                title="Edit Assignment"
+                              />
+                              <IconButton
+                                icon={Trash2}
+                                onClick={() => handleDelete(assignment.assignment_id)}
+                                variant="danger"
+                                title="Delete Assignment"
+                              />
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -374,6 +395,22 @@ function EmployeeProjectsPage() {
           </>
         )}
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          handleCancelEdit();
+        }}
+        title={isEditing ? "Update Assignment" : "Assign Employee to Project"}
+        size="lg"
+      >
+        <EmployeeProjectForm
+          onSave={handleSave}
+          editingAssignment={isEditing ? assignments.find(a => a.assignment_id === editingId) : null}
+          onCancel={handleCancelEdit}
+        />
+      </Modal>
     </div>
   );
 }

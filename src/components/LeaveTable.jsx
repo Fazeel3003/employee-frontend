@@ -1,4 +1,6 @@
 import { useAuth } from '../context/AuthContext';
+import { CheckCircle, XCircle, Pencil, Trash2 } from 'lucide-react';
+import IconButton from './IconButton';
 
 function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onReject, canApprove }) {
   const { isAdmin, isHR, isManager, isUser } = useAuth();
@@ -90,40 +92,36 @@ function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onR
   {request.approval_status === 'Pending' ? (
     <>
       {canApproveActions && (
-        <button
+        <IconButton
+          icon={CheckCircle}
           onClick={() => onApprove(request.leave_id)}
-          className="bg-green-500 text-white px-3 py-1 rounded-md 
-            hover:bg-green-600 text-sm"
-        >
-          Approve
-        </button>
+          variant="success"
+          title="Approve Leave"
+        />
       )}
       {canApproveActions && (
-        <button
+        <IconButton
+          icon={XCircle}
           onClick={() => onReject(request.leave_id)}
-          className="bg-red-500 text-white px-3 py-1 rounded-md 
-            hover:bg-red-600 text-sm"
-        >
-          Reject
-        </button>
+          variant="danger"
+          title="Reject Leave"
+        />
       )}
       {(isAdmin() || isHR() || isUser()) && (
-        <button
+        <IconButton
+          icon={Pencil}
           onClick={() => onEdit(request)}
-          className="bg-blue-500 text-white px-3 py-1 rounded-md 
-            hover:bg-blue-600 text-sm"
-        >
-          Edit
-        </button>
+          variant="primary"
+          title="Edit Leave"
+        />
       )}
       {(isAdmin() || isHR() || isUser()) && (
-        <button
+        <IconButton
+          icon={Trash2}
           onClick={() => onDelete(request.leave_id)}
-          className="bg-red-500 text-white px-3 py-1 rounded-md 
-            hover:bg-red-600 text-sm"
-        >
-          Delete
-        </button>
+          variant="danger"
+          title="Delete Leave"
+        />
       )}
     </>
   ) : (

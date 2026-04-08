@@ -1,5 +1,7 @@
 import CurrencyDisplay from './CurrencyDisplay';
 import { useAuth } from '../context/AuthContext';
+import { Pencil, Trash2 } from 'lucide-react';
+import IconButton from './IconButton';
 
 function ProjectTable({ projects, onDelete, onEdit }) {
   const { isAdmin, isHR, isManager, isUser } = useAuth();
@@ -46,20 +48,20 @@ function ProjectTable({ projects, onDelete, onEdit }) {
 
               <td className="px-4 py-3 space-x-2">
                 {canManageProjects && (
-                  <button
+                  <IconButton
+                    icon={Pencil}
                     onClick={() => onEdit(p)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                  >
-                    Edit
-                  </button>
+                    variant="primary"
+                    title="Edit Project"
+                  />
                 )}
                 {canDelete && (
-                  <button
+                  <IconButton
+                    icon={Trash2}
                     onClick={() => onDelete(p.project_id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                  >
-                    Delete
-                  </button>
+                    variant="danger"
+                    title="Delete Project"
+                  />
                 )}
               </td>
             </tr>
