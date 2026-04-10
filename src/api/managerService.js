@@ -83,6 +83,8 @@ export const projectFilters = {
  */
 export const getDashboardData = async () => {
   try {
+    console.log('=== getDashboardData: Starting API calls ===');
+    
     // Use SAME endpoint as Projects Page for consistency
     const [teamMembersRes, projectsRes, attendanceRes, leaveRequestsRes] = await Promise.all([
       axiosInstance.get('/manager/team'),
@@ -90,6 +92,14 @@ export const getDashboardData = async () => {
       axiosInstance.get('/manager/team-attendance'),
       axiosInstance.get('/manager/team-leaves')
     ]);
+
+    console.log('=== getDashboardData: API Responses ===');
+    console.log('teamMembersRes.data:', teamMembersRes.data);
+    console.log('projectsRes.data:', projectsRes.data);
+    console.log('attendanceRes.data:', attendanceRes.data);
+    console.log('leaveRequestsRes.data:', leaveRequestsRes.data);
+    console.log('leaveRequestsRes.data.data:', leaveRequestsRes.data.data);
+    console.log('=== END getDashboardData: API Responses ===');
 
     return {
       teamMembers: teamMembersRes.data.data || [],

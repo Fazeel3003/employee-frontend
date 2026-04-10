@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
 import { Users, TrendingUp, Calendar, AlertCircle, CheckCircle, Clock, Briefcase } from 'lucide-react';
+import PieChartComponent from './charts/PieChartComponent';
+import LineChartComponent from './charts/LineChartComponent';
+import BarChartComponent from './charts/BarChartComponent';
 
 const HRDashboard = () => {
   const { user, isHR } = useAuth();
@@ -29,6 +32,14 @@ const HRDashboard = () => {
     totalDepartments: 0,
     employeeGrowthRate: 0,
     projectCompletionRate: 0
+  });
+  
+  const [rawData, setRawData] = useState({
+    employees: [],
+    projects: [],
+    leaveRequests: [],
+    attendance: [],
+    departments: []
   });
   
   const [recentActivities, setRecentActivities] = useState([]);
@@ -244,6 +255,15 @@ const HRDashboard = () => {
         projectCompletionRate
       });
       
+      // Store raw data for charts
+      setRawData({
+        employees: employeesData,
+        projects: projectsData,
+        leaveRequests: leaveData,
+        attendance: attendanceData,
+        departments: departmentsData
+      });
+      
       setRecentActivities(activities.slice(0, 6)); // Show latest 6 activities
       
     } catch (err) {
@@ -271,6 +291,83 @@ const HRDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Chart data transformations
+  const employeeDistributionData = useMemo(() => {
+    if (!rawData.employees.length) return [];
+    
+    const deptCount = {};
+    rawData.employees.forEach(emp => {
+      const dept = emp.dept_name || 'Unassigned';
+      deptCount[dept] = (deptCount[dept] || 0) + 1;
+    });
+    
+    return Object.entries(deptCount)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [rawData.employees]);
+
+  const attendanceTrendData = useMemo(() => {
+    if (!rawData.attendance.length) return [];
+    
+    const last30Days = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const presentCount = rawData.attendance.filter(a => {
+        const aDate = new Date(a.attendance_date).toISOString().split('T')[0];
+        return aDate === dateStr && a.attendance_status === 'Present';
+      }).length;
+      
+      last30Days.push({
+        name: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        present: presentCount
+      });
+    }
+    
+    return last30Days;
+  }, [rawData.attendance]);
+
+  const leaveTypesData = useMemo(() => {
+    if (!rawData.leaveRequests.length) return [];
+    
+    const typeCount = {};
+    rawData.leaveRequests.forEach(leave => {
+      const type = leave.leave_type || 'Other';
+      typeCount[type] = (typeCount[type] || 0) + 1;
+    });
+    
+    return Object.entries(typeCount)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [rawData.leaveRequests]);
+
+  const hiringTrendData = useMemo(() => {
+    if (!rawData.employees.length) return [];
+    
+    const last12Months = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const month = date.getMonth();
+      const year = date.getFullYear();
+      
+      const hiresCount = rawData.employees.filter(emp => {
+        if (!emp.hire_date) return false;
+        const hireDate = new Date(emp.hire_date);
+        return hireDate.getMonth() === month && hireDate.getFullYear() === year;
+      }).length;
+      
+      last12Months.push({
+        name: date.toLocaleDateString('en-US', { month: 'short' }),
+        hires: hiresCount
+      });
+    }
+    
+    return last12Months;
+  }, [rawData.employees]);
 
   // Enhanced Stat Card Component with trend indicators
   const StatCard = ({ title, value, icon, color = 'blue', trend, subtitle }) => {
@@ -366,41 +463,67 @@ const HRDashboard = () => {
 
       {/* HR Dashboard Content */}
       <div>
-        {/* HR Overview with Enhanced Metrics */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">HR Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-            <StatCard
-              title="Total Employees"
-              value={stats.totalEmployees}
-              icon={<Users className="w-6 h-6" />}
-              color="blue"
-              trend={stats.employeeGrowthRate}
-              subtitle="Across all departments"
-            />
-            <StatCard
-              title="Pending Leave Requests"
-              value={stats.pendingLeaveRequests}
-              icon={<Calendar className="w-6 h-6" />}
-              color="yellow"
-              subtitle="Awaiting approval"
-            />
-            <StatCard
-              title="Today's Attendance"
-              value={stats.todayAttendance}
-              icon={<CheckCircle className="w-6 h-6" />}
-              color="indigo"
-              subtitle="Present today"
-            />
-            <StatCard
-              title="New Hires"
-              value={stats.newHiresThisMonth}
-              icon={<Users className="w-6 h-6" />}
-              color="purple"
-              subtitle="Recent additions"
-            />
-          </div>
+      {/* KPI Cards */}
+      <div className="mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StatCard
+            title="Total Employees"
+            value={stats.totalEmployees}
+            icon={<Users className="w-6 h-6" />}
+            color="blue"
+            trend={stats.employeeGrowthRate}
+            subtitle="Across all departments"
+          />
+          <StatCard
+            title="Pending Leave Requests"
+            value={stats.pendingLeaveRequests}
+            icon={<Calendar className="w-6 h-6" />}
+            color="yellow"
+            subtitle="Awaiting approval"
+          />
         </div>
+      </div>
+
+      {/* Employee Distribution & Attendance Trend */}
+      <div className="mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PieChartComponent
+            data={employeeDistributionData}
+            title="Employee Distribution by Department"
+            height={250}
+          />
+          <LineChartComponent
+            data={attendanceTrendData}
+            dataKey="present"
+            xAxisKey="name"
+            color="#6366F1"
+            title="Attendance Trend (Last 30 Days)"
+            height={250}
+          />
+        </div>
+      </div>
+
+      {/* Leave Types & Hiring Trend */}
+      <div className="mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <BarChartComponent
+            data={leaveTypesData}
+            dataKey="value"
+            xAxisKey="name"
+            color="#8B5CF6"
+            title="Leave Types Breakdown"
+            height={250}
+          />
+          <LineChartComponent
+            data={hiringTrendData}
+            dataKey="hires"
+            xAxisKey="name"
+            color="#10B981"
+            title="Hiring Trend (Last 12 Months)"
+            height={250}
+          />
+        </div>
+      </div>
 
         {/* Quick Actions and Recent Activities */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

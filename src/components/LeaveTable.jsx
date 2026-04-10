@@ -1,8 +1,11 @@
 import { useAuth } from '../context/AuthContext';
 import { CheckCircle, XCircle, Pencil, Trash2 } from 'lucide-react';
 import IconButton from './IconButton';
+import Table from './common/Table';
+import StatusBadge from './common/StatusBadge';
+import { formatDateShort, getStatusVariant, getLeaveTypeIcon } from '../utils/tableUtils';
 
-function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onReject, canApprove }) {
+function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onReject, canApprove, loading = false }) {
   const { isAdmin, isHR, isManager, isUser } = useAuth();
   const canApproveActions = canApprove !== undefined 
     ? canApprove 
@@ -16,125 +19,105 @@ function LeaveTable({ leaveRequests, employees, onDelete, onEdit, onApprove, onR
       : `Employee #${item.emp_id}`;
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      'Pending': 'bg-yellow-100 text-yellow-800',
-      'Approved': 'bg-green-100 text-green-800',
-      'Rejected': 'bg-red-100 text-red-800'
-    };
-    
+  const columns = [
+    {
+      key: 'employee',
+      label: 'Employee',
+      render: (row) => <span className="text-gray-700">{getEmployeeName(row.emp_id, row)}</span>
+    },
+    {
+      key: 'leave_type',
+      label: 'Leave Type',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <span>{getLeaveTypeIcon(row.leave_type)}</span>
+          <span className="font-medium text-gray-900">{row.leave_type}</span>
+        </div>
+      )
+    },
+    {
+      key: 'start_date',
+      label: 'Start Date',
+      render: (row) => <span className="text-gray-600">{formatDateShort(row.start_date)}</span>
+    },
+    {
+      key: 'end_date',
+      label: 'End Date',
+      render: (row) => <span className="text-gray-600">{formatDateShort(row.end_date)}</span>
+    },
+    {
+      key: 'reason',
+      label: 'Reason',
+      render: (row) => <span className="text-gray-600 text-sm line-clamp-2">{row.reason || '-'}</span>
+    },
+    {
+      key: 'approval_status',
+      label: 'Status',
+      render: (row) => (
+        <StatusBadge 
+          status={row.approval_status} 
+          variant={getStatusVariant(row.approval_status)} 
+        />
+      )
+    },
+    {
+      key: 'requested_at',
+      label: 'Requested At',
+      render: (row) => <span className="text-gray-600">{formatDateShort(row.requested_at)}</span>
+    }
+  ];
+
+  const renderActions = (row) => {
+    if (row.approval_status !== 'Pending') {
+      return <span className="text-gray-400 text-sm italic">No actions available</span>;
+    }
+
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
-        {status}
-      </span>
+      <>
+        {canApproveActions && (
+          <IconButton
+            icon={CheckCircle}
+            onClick={() => onApprove(row.leave_id)}
+            variant="success"
+            title="Approve Leave"
+          />
+        )}
+        {canApproveActions && (
+          <IconButton
+            icon={XCircle}
+            onClick={() => onReject(row.leave_id)}
+            variant="danger"
+            title="Reject Leave"
+          />
+        )}
+        {(isAdmin() || isHR() || isUser()) && (
+          <IconButton
+            icon={Pencil}
+            onClick={() => onEdit(row)}
+            variant="primary"
+            title="Edit Leave"
+          />
+        )}
+        {(isAdmin() || isHR() || isUser()) && (
+          <IconButton
+            icon={Trash2}
+            onClick={() => onDelete(row.leave_id)}
+            variant="danger"
+            title="Delete Leave"
+          />
+        )}
+      </>
     );
   };
 
-  const getLeaveTypeIcon = (type) => {
-    const icons = {
-      'Sick': '🤒',
-      'Casual': '🏖️',
-      'Earned': '💰',
-      'Maternity': '🤱',
-      'Paternity': '👨‍👦‍👦',
-      'Unpaid': '📋'
-    };
-    
-    return icons[type] || '📄';
-  };
-
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 rounded-lg">
-        <thead className="bg-gray-100 text-left">
-          <tr>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Employee</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Leave Type</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Start Date</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">End Date</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Reason</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Status</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Requested At</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {leaveRequests.map((request) => (
-            <tr key={request.leave_id} className="border-t hover:bg-gray-50">
-              <td className="px-4 py-3">
-                {getEmployeeName(request.emp_id, request)}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span>{getLeaveTypeIcon(request.leave_type)}</span>
-                  <span className="font-medium">{request.leave_type}</span>
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                {request.start_date?.split("T")[0]}
-              </td>
-              <td className="px-4 py-3">
-                {request.end_date?.split("T")[0]}
-              </td>
-              <td className="px-4 py-3">
-                <span className="text-gray-600 text-sm line-clamp-2">
-                  {request.reason || "-"}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                {getStatusBadge(request.approval_status)}
-              </td>
-              <td className="px-4 py-3">
-                {request.requested_at?.split("T")[0]}
-              </td>
-              <td className="px-4 py-3 space-x-2">
-  {request.approval_status === 'Pending' ? (
-    <>
-      {canApproveActions && (
-        <IconButton
-          icon={CheckCircle}
-          onClick={() => onApprove(request.leave_id)}
-          variant="success"
-          title="Approve Leave"
-        />
-      )}
-      {canApproveActions && (
-        <IconButton
-          icon={XCircle}
-          onClick={() => onReject(request.leave_id)}
-          variant="danger"
-          title="Reject Leave"
-        />
-      )}
-      {(isAdmin() || isHR() || isUser()) && (
-        <IconButton
-          icon={Pencil}
-          onClick={() => onEdit(request)}
-          variant="primary"
-          title="Edit Leave"
-        />
-      )}
-      {(isAdmin() || isHR() || isUser()) && (
-        <IconButton
-          icon={Trash2}
-          onClick={() => onDelete(request.leave_id)}
-          variant="danger"
-          title="Delete Leave"
-        />
-      )}
-    </>
-  ) : (
-    <span className="text-gray-400 text-sm italic">
-      No actions available
-    </span>
-  )}
-</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      columns={columns}
+      data={leaveRequests}
+      loading={loading}
+      emptyMessage="No leave requests found"
+      renderActions={renderActions}
+    />
   );
 }
 

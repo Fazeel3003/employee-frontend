@@ -74,19 +74,37 @@ const ManagerDashboardPage = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon, color }) => (
-    <div className={`${color} rounded-lg p-6 text-white`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-white/80 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold mt-2">{value}</p>
-        </div>
-        <div className="text-white/60">
-          {icon}
+  const StatCard = ({ title, value, icon, color }) => {
+    const colorClasses = {
+      'bg-blue-600': 'border-blue-500',
+      'bg-green-600': 'border-green-500',
+      'bg-yellow-600': 'border-yellow-500',
+      'bg-purple-600': 'border-purple-500'
+    };
+
+    const bgColorClasses = {
+      'bg-blue-600': 'bg-blue-500',
+      'bg-green-600': 'bg-green-500',
+      'bg-yellow-600': 'bg-yellow-500',
+      'bg-purple-600': 'bg-purple-500'
+    };
+
+    return (
+      <div className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow border-t-4 ${colorClasses[color]}`}>
+        <div className="p-6">
+          <div className="flex items-center">
+            <div className={`p-3 rounded-lg ${bgColorClasses[color]} flex items-center justify-center`}>
+              {icon}
+            </div>
+            <div className="ml-4 flex-1">
+              <p className="text-sm font-medium text-gray-600">{title}</p>
+              <p className="text-2xl font-semibold text-gray-900">{value}</p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -109,25 +127,25 @@ const ManagerDashboardPage = () => {
         <StatCard
           title="Total Team Members"
           value={stats.totalTeamMembers}
-          icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+          icon={<svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
           color="bg-blue-600"
         />
         <StatCard
           title="Active Projects"
           value={stats.activeProjects}
-          icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
+          icon={<svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
           color="bg-green-600"
         />
         <StatCard
           title="Pending Leaves"
           value={stats.pendingLeaves}
-          icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+          icon={<svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
           color="bg-yellow-600"
         />
         <StatCard
           title="Present Today"
           value={stats.presentToday}
-          icon={<svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          icon={<svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           color="bg-purple-600"
         />
       </div>
@@ -135,7 +153,7 @@ const ManagerDashboardPage = () => {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow border-t-4 border-blue-500 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-3">
             <button className="w-full text-left px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors">
@@ -166,7 +184,7 @@ const ManagerDashboardPage = () => {
         </div>
 
         {/* Recent Activities */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow border-t-4 border-green-500 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
           <div className="space-y-3">
             {recentActivities.map((activity) => (

@@ -1,59 +1,64 @@
 import CurrencyDisplay from './CurrencyDisplay';
 import { Pencil, Trash2 } from 'lucide-react';
 import IconButton from './IconButton';
+import Table from './common/Table';
 
-function PositionTable({ positions, onEdit, onDelete }) {
+function PositionTable({ positions, onEdit, onDelete, loading = false }) {
+  // Column definitions
+  const columns = [
+    {
+      key: 'position_id',
+      label: 'ID',
+      render: (row) => <span className="text-gray-700">{row.position_id}</span>
+    },
+    {
+      key: 'position_title',
+      label: 'Title',
+      render: (row) => <span className="font-medium text-gray-900">{row.position_title}</span>
+    },
+    {
+      key: 'dept_id',
+      label: 'Department',
+      render: (row) => <span className="text-gray-600">{row.dept_id}</span>
+    },
+    {
+      key: 'min_salary',
+      label: 'Min Salary',
+      render: (row) => <CurrencyDisplay amount={row.min_salary} />
+    },
+    {
+      key: 'max_salary',
+      label: 'Max Salary',
+      render: (row) => <CurrencyDisplay amount={row.max_salary} />
+    }
+  ];
+
+  // Render action buttons
+  const renderActions = (row) => (
+    <>
+      <IconButton
+        icon={Pencil}
+        onClick={() => onEdit(row)}
+        variant="primary"
+        title="Edit Position"
+      />
+      <IconButton
+        icon={Trash2}
+        onClick={() => onDelete(row.position_id)}
+        variant="danger"
+        title="Delete Position"
+      />
+    </>
+  );
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 rounded-lg">
-
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">ID</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Title</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Department</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Min Salary</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Max Salary</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {positions.map((pos) => (
-            <tr key={pos.position_id} className="border-t">
-
-              <td className="px-4 py-3">{pos.position_id}</td>
-              <td className="px-4 py-3">{pos.position_title}</td>
-              <td className="px-4 py-3">{pos.dept_id}</td>
-              <td className="px-4 py-3">
-                <CurrencyDisplay amount={pos.min_salary} />
-              </td>
-              <td className="px-4 py-3">
-                <CurrencyDisplay amount={pos.max_salary} />
-              </td>
-
-              <td className="px-4 py-3 space-x-2">
-                <IconButton
-                  icon={Pencil}
-                  onClick={() => onEdit(pos)}
-                  variant="primary"
-                  title="Edit Position"
-                />
-
-                <IconButton
-                  icon={Trash2}
-                  onClick={() => onDelete(pos.position_id)}
-                  variant="danger"
-                  title="Delete Position"
-                />
-              </td>
-
-            </tr>
-          ))}
-        </tbody>
-
-      </table>
-    </div>
+    <Table
+      columns={columns}
+      data={positions}
+      loading={loading}
+      emptyMessage="No positions found"
+      renderActions={renderActions}
+    />
   );
 }
 

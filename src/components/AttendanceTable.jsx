@@ -1,7 +1,10 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import IconButton from './IconButton';
+import Table from './common/Table';
+import StatusBadge from './common/StatusBadge';
+import { formatDateShort, getStatusVariant } from '../utils/tableUtils';
 
-function AttendanceTable({ attendance, employees, onEdit, onDelete }) {
+function AttendanceTable({ attendance, employees, onEdit, onDelete, loading = false }) {
   const getEmployeeName = (empId) => {
     if (!empId) return 'N/A';
     
@@ -12,77 +15,66 @@ function AttendanceTable({ attendance, employees, onEdit, onDelete }) {
     return `ID: ${empId}`;
   };
 
-  // Handle empty attendance array
-  if (!attendance || attendance.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <div className="text-lg font-medium">No attendance records found</div>
-        <div className="text-sm mt-2">Try adjusting your filters or check back later.</div>
-      </div>
-    );
-  }
+  // Column definitions
+  const columns = [
+    {
+      key: 'employee',
+      label: 'Employee',
+      render: (row) => <span className="text-gray-700">{getEmployeeName(row.emp_id)}</span>
+    },
+    {
+      key: 'attendance_date',
+      label: 'Date',
+      render: (row) => <span className="text-gray-600">{formatDateShort(row.attendance_date)}</span>
+    },
+    {
+      key: 'check_in',
+      label: 'Check In',
+      render: (row) => <span className="text-gray-600">{row.check_in || 'N/A'}</span>
+    },
+    {
+      key: 'check_out',
+      label: 'Check Out',
+      render: (row) => <span className="text-gray-600">{row.check_out || 'N/A'}</span>
+    },
+    {
+      key: 'attendance_status',
+      label: 'Status',
+      render: (row) => (
+        <StatusBadge 
+          status={row.attendance_status || 'N/A'} 
+          variant={getStatusVariant(row.attendance_status)} 
+        />
+      )
+    }
+  ];
+
+  // Render action buttons
+  const renderActions = (row) => (
+    <>
+      <IconButton
+        icon={Pencil}
+        onClick={() => onEdit(row)}
+        variant="primary"
+        title="Edit Attendance"
+      />
+      <IconButton
+        icon={Trash2}
+        onClick={() => onDelete(row.attendance_id)}
+        variant="danger"
+        title="Delete Attendance"
+      />
+    </>
+  );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 rounded-lg">
-        <thead className="bg-gray-100 text-left">
-          <tr>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Employee</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Date</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Check In</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Check Out</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Status</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {attendance.map((record) => {
-            if (!record) return null;
-            
-            return (
-              <tr key={record.attendance_id || Math.random()} className="border-t hover:bg-gray-50">
-                <td className="px-4 py-3">{getEmployeeName(record.emp_id)}</td>
-                <td className="px-4 py-3">
-                  {record.attendance_date ? record.attendance_date.split("T")[0] : 'N/A'}
-                </td>
-                <td className="px-4 py-3">{record.check_in || 'N/A'}</td>
-                <td className="px-4 py-3">{record.check_out || 'N/A'}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    record.attendance_status === 'Present' ? 'bg-green-100 text-green-800' :
-                    record.attendance_status === 'Absent' ? 'bg-red-100 text-red-800' :
-                    record.attendance_status === 'Leave' ? 'bg-yellow-100 text-yellow-800' :
-                    record.attendance_status === 'Half Day' ? 'bg-blue-100 text-blue-800' :
-                    record.attendance_status === 'Late' ? 'bg-orange-100 text-orange-800' :
-                    record.attendance_status === 'Early Leave' ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {record.attendance_status || 'N/A'}
-                  </span>
-                </td>
-
-                <td className="px-4 py-3 space-x-2">
-                  <IconButton
-                    icon={Pencil}
-                    onClick={() => onEdit(record)}
-                    variant="primary"
-                    title="Edit Attendance"
-                  />
-
-                  <IconButton
-                    icon={Trash2}
-                    onClick={() => onDelete(record.attendance_id)}
-                    variant="danger"
-                    title="Delete Attendance"
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      columns={columns}
+      data={attendance}
+      loading={loading}
+      emptyMessage="No attendance records found"
+      renderActions={renderActions}
+    />
   );
 }
 

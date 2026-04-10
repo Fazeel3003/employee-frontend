@@ -1,64 +1,67 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import IconButton from './IconButton';
+import Table from './common/Table';
+import { formatDateShort } from '../utils/tableUtils';
 
-function EmployeeProjectTable({ assignments, onEdit, onDelete }) {
+function EmployeeProjectTable({ assignments, onEdit, onDelete, loading = false }) {
+  const columns = [
+    {
+      key: 'employee',
+      label: 'Employee',
+      render: (row) => <span className="text-gray-700">{row.employee_name || row.emp_id}</span>
+    },
+    {
+      key: 'project',
+      label: 'Project',
+      render: (row) => <span className="font-medium text-gray-900">{row.project_name || row.project_id}</span>
+    },
+    {
+      key: 'role_name',
+      label: 'Role',
+      render: (row) => <span className="text-gray-600">{row.role_name}</span>
+    },
+    {
+      key: 'allocation_percent',
+      label: 'Allocation %',
+      render: (row) => <span className="text-gray-600">{row.allocation_percent}%</span>
+    },
+    {
+      key: 'assigned_on',
+      label: 'Assigned',
+      render: (row) => <span className="text-gray-600">{formatDateShort(row.assigned_on)}</span>
+    },
+    {
+      key: 'released_on',
+      label: 'Released',
+      render: (row) => <span className="text-gray-600">{formatDateShort(row.released_on)}</span>
+    }
+  ];
+
+  const renderActions = (row) => (
+    <>
+      <IconButton
+        icon={Pencil}
+        onClick={() => onEdit(row)}
+        variant="primary"
+        title="Edit Assignment"
+      />
+      <IconButton
+        icon={Trash2}
+        onClick={() => onDelete(row.assignment_id)}
+        variant="danger"
+        title="Delete Assignment"
+      />
+    </>
+  );
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 rounded-lg">
-
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Employee</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Project</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Role</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Allocation %</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Assigned</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Released</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {assignments.map((a) => (
-            <tr key={a.assignment_id} className="border-t">
-
-              <td className="px-4 py-3">{a.employee_name || a.emp_id}</td>
-
-              <td className="px-4 py-3">{a.project_name || a.project_id}</td>
-
-              <td className="px-4 py-3">{a.role_name}</td>
-
-              <td className="px-4 py-3">{a.allocation_percent}%</td>
-
-              <td className="px-4 py-3">
-                {a.assigned_on?.split("T")[0]}
-              </td>
-
-              <td className="px-4 py-3">
-                {a.released_on?.split("T")[0]}
-              </td>
-
-              <td className="px-4 py-3 space-x-2">
-                <IconButton
-                  icon={Pencil}
-                  onClick={() => onEdit(a)}
-                  variant="primary"
-                  title="Edit Assignment"
-                />
-
-                <IconButton
-                  icon={Trash2}
-                  onClick={() => onDelete(a.assignment_id)}
-                  variant="danger"
-                  title="Delete Assignment"
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-
-      </table>
-    </div>
+    <Table
+      columns={columns}
+      data={assignments}
+      loading={loading}
+      emptyMessage="No assignments found"
+      renderActions={renderActions}
+    />
   );
 }
 

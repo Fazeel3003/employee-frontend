@@ -8,8 +8,7 @@ import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axiosInstance";
-import { Pencil, Trash2 } from 'lucide-react';
-import IconButton from '../components/IconButton';
+
 import {
   getAttendance,
   createAttendance,
@@ -347,26 +346,7 @@ function AttendancePage() {
     setCurrentPage(1);
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit'
-    });
-  };
 
-  const getStatusBadge = (status) => {
-    const colors = {
-      'Present': 'bg-green-100 text-green-800',
-      'Absent': 'bg-red-100 text-red-800',
-      'Leave': 'bg-yellow-100 text-yellow-800',
-      'Half Day': 'bg-blue-100 text-blue-800',
-      'Late': 'bg-orange-100 text-orange-800',
-      'Early Leave': 'bg-purple-100 text-purple-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
 
   return (
     <div>
@@ -387,28 +367,27 @@ function AttendancePage() {
 
       {/* SUMMARY STATS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow border-t-4 border-green-500 p-4">
           <div className="text-sm font-medium text-gray-500">Present Today</div>
           <div className="text-2xl font-bold text-green-600">{todayStats.present}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow border-t-4 border-red-500 p-4">
           <div className="text-sm font-medium text-gray-500">Absent Today</div>
           <div className="text-2xl font-bold text-red-600">{todayStats.absent}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow border-t-4 border-blue-500 p-4">
           <div className="text-sm font-medium text-gray-500">Half Day Today</div>
           <div className="text-2xl font-bold text-blue-600">{todayStats.halfDay}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow border-t-4 border-gray-500 p-4">
           <div className="text-sm font-medium text-gray-500">Total Records</div>
           <div className="text-2xl font-bold text-gray-600">{todayStats.total}</div>
         </div>
       </div>
 
-      {/* TABLE */}
-      <div className="bg-white shadow rounded-lg p-6">
-        {/* FILTERS */}
-        <div className="flex flex-wrap gap-4 mb-4">
+      {/* FILTERS */}
+      <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow border-t-4 border-purple-500 p-6 mb-6">
+        <div className="flex flex-wrap gap-4">
           {canManageAll && (
             <div className="flex-1 min-w-48">
               <SearchBar
@@ -437,134 +416,53 @@ function AttendancePage() {
             <option value="Half Day">Half Day</option>
           </select>
         </div>
-
-        {loading ? (
-          <div className="text-center py-8">Loading...</div>
-        ) : (
-          <>
-            
-            {filteredAttendance.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '48px',
-                color: '#6B7280'
-              }}>
-                <p style={{ fontSize: '16px' }}>
-                  📅 No attendance records found
-                </p>
-                <p style={{ fontSize: '14px' }}>
-                  {searchEmployee || searchDate || searchStatus !== 'all' 
-                    ? 'Try different filter criteria or clear all filters' 
-                    : 'Your attendance records will appear here once they are marked'}
-                </p>
-                {(searchEmployee || searchDate || searchStatus !== 'all') && (
-                  <button 
-                    onClick={clearFilters}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Clear Filters
-                  </button>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="mb-4 text-sm text-gray-600">
-                  Showing {filteredAttendance.length} attendance record{filteredAttendance.length !== 1 ? 's' : ''}
-                  {filteredAttendance.length > 0 && ` (Page ${currentPage} of ${totalPages})`}
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Employee
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Check In
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Check Out
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {paginated.map((record) => (
-                        <tr key={record.attendance_id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {record.first_name} {record.last_name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ({record.employee_code})
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {formatDate(record.attendance_date)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {record.check_in || 'N/A'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {record.check_out || 'N/A'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(record.attendance_status)}`}>
-                              {record.attendance_status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            {canManageAll ? (
-                              <div className="flex gap-2">
-                                <IconButton
-                                  icon={Pencil}
-                                  onClick={() => handleEdit(record)}
-                                  variant="primary"
-                                  title="Edit Attendance"
-                                />
-                                <IconButton
-                                  icon={Trash2}
-                                  onClick={() => handleDelete(record.attendance_id)}
-                                  variant="danger"
-                                  title="Delete Attendance"
-                                />
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 text-sm italic">No actions available</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                <Pagination
-                  page={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </>
-            )}
-          </>
-        )}
       </div>
+
+      {/* TABLE */}
+      {filteredAttendance.length === 0 ? (
+        <div className="bg-white shadow rounded-lg p-6">
+          <div style={{
+            textAlign: 'center',
+            padding: '48px',
+            color: '#6B7280'
+          }}>
+            <p style={{ fontSize: '16px' }}>
+              📅 No attendance records found
+            </p>
+            <p style={{ fontSize: '14px' }}>
+              {searchEmployee || searchDate || searchStatus !== 'all' 
+                ? 'Try different filter criteria or clear all filters' 
+                : 'Your attendance records will appear here once they are marked'}
+            </p>
+            {(searchEmployee || searchDate || searchStatus !== 'all') && (
+              <button 
+                onClick={clearFilters}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          <AttendanceTable
+            attendance={paginated}
+            employees={employees}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            loading={loading}
+          />
+          
+          <div className="mt-6">
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        </>
+      )}
 
       {/* MODAL */}
       {canManageAll && (

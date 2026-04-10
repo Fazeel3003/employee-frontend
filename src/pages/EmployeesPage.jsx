@@ -267,33 +267,28 @@ function EmployeesPage() {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white shadow rounded-lg p-6">
-
+      <div>
         {loading && (
-          <p className="text-gray-500">Loading employees...</p>
+          <p className="text-center py-8 text-gray-500">Loading employees...</p>
         )}
 
         {error && (
-          <p className="text-red-500">{error}</p>
+          <p className="text-center py-8 text-red-500">{error}</p>
         )}
 
         {!loading && !error && (
           <>
             {filteredEmployees.length === 0 && searchQuery && (
-              <div style={{
-                textAlign: 'center',
-                padding: '48px',
-                color: '#6B7280'
-              }}>
-                <p style={{ fontSize: '16px' }}>
-                  No results found for '{searchQuery}'
+              <div className="text-center py-12 px-4">
+                <p className="text-base text-gray-600 mb-2">
+                  🔍 No results found for "{searchQuery}"
                 </p>
-                <p style={{ fontSize: '14px' }}>
+                <p className="text-sm text-gray-500 mb-4">
                   Try different keywords or clear all filters
                 </p>
                 <button 
                   onClick={clearFilters}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Clear Filters
                 </button>
@@ -306,13 +301,16 @@ function EmployeesPage() {
                   employees={paginatedEmployees}
                   onDelete={handleDeleteEmployee}
                   onEdit={handleEditEmployee}
+                  loading={loading}
                 />
 
-                <Pagination
-                  page={page}
-                  totalPages={totalPagesFiltered}
-                  onPageChange={setPage}
-                />
+                <div className="mt-6">
+                  <Pagination
+                    page={page}
+                    totalPages={totalPagesFiltered}
+                    onPageChange={setPage}
+                  />
+                </div>
               </>
             )}
           </>

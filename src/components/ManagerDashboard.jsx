@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardData, projectFilters } from '../api/managerService';
+import { getLeaveRequests } from '../api/leaveService';
+import PieChartComponent from './charts/PieChartComponent';
+import AttendanceCalendar from './attendance/AttendanceCalendar';
+import axiosInstance from '../api/axiosInstance';
 
 const ManagerDashboard = () => {
   const { user } = useAuth();
@@ -15,8 +19,17 @@ const ManagerDashboard = () => {
     pendingLeaves: 0
   });
   
+  const [rawData, setRawData] = useState({
+    teamMembers: [],
+    projects: [],
+    attendance: [],
+    leaveRequests: [],
+    managerAttendance: [] // Manager's own attendance for calendar
+  });
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(true);
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -26,13 +39,20 @@ const ManagerDashboard = () => {
       setLoading(true);
       setError(null);
       
-      // Debug logs (TEMPORARY)
-      console.log("USER:", user);
-      
-      // Fetch manager-specific dashboard data with error handling
+      // Fetch dashboard data (projects, team, attendance)  
       const dashboardData = await getDashboardData();
       
-      console.log("Dashboard Data:", dashboardData);
+      // Fetch leave requests using EXACT SAME service as LeavePage
+      // Backend automatically filters by role (manager sees team leaves)
+      const leaveResponse = await getLeaveRequests(1, 1000, "");
+      const teamLeaves = leaveResponse.data.data || [];
+      
+      // Fetch manager's OWN attendance for calendar widget
+      // Backend automatically filters by logged-in user (manager sees their own attendance)
+      setAttendanceLoading(true);
+      const managerAttendanceResponse = await axiosInstance.get('/attendance');
+      const managerAttendance = managerAttendanceResponse.data?.data || managerAttendanceResponse.data || [];
+      setAttendanceLoading(false);
       
       // Calculate stats from real data with fallbacks
       const teamMembers = dashboardData.teamMembers || [];
@@ -40,18 +60,7 @@ const ManagerDashboard = () => {
       // Use centralized filtering utility (same logic as backend)
       const activeProjects = (dashboardData.projects || []).filter(projectFilters.isActive);
       
-      console.log("=== DASHBOARD DEBUG ===");
-      console.log("Dashboard projects array:", dashboardData.projects);
-      console.log("Dashboard projects count:", dashboardData.projects?.length);
-      console.log("Active projects filtered:", activeProjects);
-      console.log("Active projects count:", activeProjects.length);
-      console.log("=== END DASHBOARD DEBUG ===");
-      
       const todaysAttendance = dashboardData.attendance || [];
-      const pendingLeaves = dashboardData.leaveRequests || [];
-      
-      console.log("Team Members:", teamMembers);
-      console.log("Filtered Team:", teamMembers);
       
       const presentCount = todaysAttendance.filter(
         att => att.attendance_status === 'Present' || att.status === 'Present'
@@ -64,12 +73,22 @@ const ManagerDashboard = () => {
         activeProjects: activeProjects.length,
         todaysAttendance: presentCount,
         absentToday: absentCount,
-        pendingLeaves: pendingLeaves.length
+        pendingLeaves: teamLeaves.filter(l => l.approval_status === 'Pending').length
+      });
+      
+      // Store raw data for charts
+      setRawData({
+        teamMembers,
+        projects: dashboardData.projects || [],
+        attendance: todaysAttendance,
+        leaveRequests: teamLeaves, // Use EXACT SAME data as LeavePage
+        managerAttendance // Manager's own attendance for calendar
       });
       
     } catch (err) {
       console.error("Dashboard fetch failed:", err);
       setError('Failed to load dashboard data. Please try again.');
+      setAttendanceLoading(false);
       
       // Set default values on error to prevent crashes
       setStats({
@@ -89,33 +108,49 @@ const ManagerDashboard = () => {
     fetchDashboardData();
   }, [user]);
 
-  // Stat Card Component
-  const StatCard = ({ title, value, icon, color = 'blue' }) => {
-    const colorClasses = {
-      blue: 'bg-blue-500',
-      green: 'bg-green-500',
-      purple: 'bg-purple-500',
-      yellow: 'bg-yellow-500',
-      red: 'bg-red-500',
-      indigo: 'bg-indigo-500'
-    };
+  // Chart data transformations
+  const leaveStatusChartData = useMemo(() => {
+    if (!rawData.leaveRequests.length) {
+      return [];
+    }
+    
+    // Use EXACT SAME logic as LeavePage with Title Case status values
+    const pendingCount = rawData.leaveRequests.filter(r => r.approval_status === 'Pending').length;
+    const approvedCount = rawData.leaveRequests.filter(r => r.approval_status === 'Approved').length;
+    const rejectedCount = rawData.leaveRequests.filter(r => r.approval_status === 'Rejected').length;
+    
+    const chartData = [
+      { name: 'Pending', value: pendingCount },
+      { name: 'Approved', value: approvedCount },
+      { name: 'Rejected', value: rejectedCount }
+    ].filter(item => item.value > 0);
+    
+    return chartData;
+  }, [rawData.leaveRequests]);
 
-    return (
-      <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-        <div className="flex items-center">
-          <div className={`p-3 rounded-full ${colorClasses[color]} bg-opacity-10`}>
-            <div className={`w-6 h-6 ${colorClasses[color]} rounded-full flex items-center justify-center text-white`}>
-              {icon}
-            </div>
-          </div>
-          <div className="ml-4 flex-1">
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-semibold text-gray-900">{value}</p>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const projectStatusChartData = useMemo(() => {
+    if (!rawData.projects.length) return [];
+    
+    const statusCount = {
+      Active: 0,
+      Completed: 0,
+      Pending: 0
+    };
+    
+    rawData.projects.forEach(project => {
+      if (projectFilters.isActive(project)) {
+        statusCount.Active++;
+      } else if (projectFilters.isCompleted(project)) {
+        statusCount.Completed++;
+      } else {
+        statusCount.Pending++;
+      }
+    });
+    
+    return Object.entries(statusCount)
+      .filter(([_, value]) => value > 0)
+      .map(([name, value]) => ({ name, value }));
+  }, [rawData.projects]);
 
   if (loading) {
     return (
@@ -133,7 +168,7 @@ const ManagerDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">
-                Welcome back, {user?.name || 'Manager'}! 👨‍💼
+                Welcome back, {user?.name || 'Manager'}!
               </h1>
               <p className="text-blue-100">
                 Here's your team overview and today's status
@@ -158,34 +193,36 @@ const ManagerDashboard = () => {
 
       {/* Manager Dashboard Content */}
       <div>
-        {/* Top Stats Cards */}
+        {/* Main Content Grid: 3 widgets in one row */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Team Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-              title="Team Members"
-              value={stats.teamMembers}
-              icon={<span>👥</span>}
-              color="blue"
-            />
-            <StatCard
-              title="Active Projects"
-              value={stats.activeProjects}
-              icon={<span>📊</span>}
-              color="green"
-            />
-            <StatCard
-              title="Today's Attendance"
-              value={`${stats.todaysAttendance} Present / ${stats.absentToday} Absent`}
-              icon={<span>✅</span>}
-              color="indigo"
-            />
-            <StatCard
-              title="Pending Leave Requests"
-              value={stats.pendingLeaves}
-              icon={<span>📝</span>}
-              color="yellow"
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Leave Request Status Chart */}
+            <div className="lg:col-span-1">
+              <PieChartComponent
+                data={leaveStatusChartData}
+                title="Leave Request Status"
+                height={250}
+                colors={['#facc15', '#22c55e', '#ef4444']}
+              />
+            </div>
+            
+            {/* Project Status Chart */}
+            <div className="lg:col-span-1">
+              <PieChartComponent
+                data={projectStatusChartData}
+                title="Project Status Distribution"
+                height={250}
+                colors={['#10B981', '#3B82F6', '#F59E0B']}
+              />
+            </div>
+            
+            {/* Manager's Own Attendance Calendar Widget */}
+            <div className="lg:col-span-1">
+              <AttendanceCalendar 
+                attendanceData={rawData.managerAttendance}
+                loading={attendanceLoading}
+              />
+            </div>
           </div>
         </div>
 

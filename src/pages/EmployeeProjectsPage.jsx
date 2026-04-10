@@ -7,8 +7,7 @@ import { useModal } from "../context/ModalContext";
 import Modal from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-import { Pencil, Trash2 } from 'lucide-react';
-import IconButton from '../components/IconButton';
+
 import {
   getEmployeeProjects,
   createEmployeeProject,
@@ -234,14 +233,7 @@ function EmployeeProjectsPage() {
     });
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit'
-    });
-  };
+
 
   return (
     <div>
@@ -258,8 +250,8 @@ function EmployeeProjectsPage() {
         </button>
       </div>
 
-      <div className="bg-white shadow rounded-lg p-6">
-        {/* SEARCH BAR */}
+      {/* SEARCH BAR */}
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
           <div className="text-sm text-gray-600">
             Showing {filteredAssignments.length} of {assignments.length} assignments
@@ -270,131 +262,50 @@ function EmployeeProjectsPage() {
             placeholder="Search by employee name, project, code, or role..."
           />
         </div>
-
-        {loading ? (
-          <div className="text-center py-8">Loading...</div>
-        ) : (
-          <>
-            {filteredAssignments.length === 0 && searchTerm && (
-              <div style={{
-                textAlign: 'center',
-                padding: '48px',
-                color: '#6B7280'
-              }}>
-                <p style={{ fontSize: '16px' }}>
-                  🔍 No results found for "{searchTerm}"
-                </p>
-                <p style={{ fontSize: '14px' }}>
-                  Try different keywords or clear the search
-                </p>
-                <button 
-                  onClick={() => setSearchTerm('')}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Clear Search
-                </button>
-              </div>
-            )}
-
-            {filteredAssignments.length > 0 && (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Employee
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Project
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Role
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Allocation %
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Assigned On
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Released On
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {paginated.map((assignment) => (
-                        <tr key={assignment.assignment_id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {assignment.first_name} {assignment.last_name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ({assignment.employee_code})
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {assignment.project_name}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {assignment.role_name}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {assignment.allocation_percent}%
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {formatDate(assignment.assigned_on)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {assignment.released_on ? formatDate(assignment.released_on) : 'Active'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex gap-2">
-                              <IconButton
-                                icon={Pencil}
-                                onClick={() => handleEdit(assignment)}
-                                variant="primary"
-                                title="Edit Assignment"
-                              />
-                              <IconButton
-                                icon={Trash2}
-                                onClick={() => handleDelete(assignment.assignment_id)}
-                                variant="danger"
-                                title="Delete Assignment"
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                <Pagination
-                  page={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </>
-            )}
-          </>
-        )}
       </div>
+
+      {/* TABLE */}
+      {filteredAssignments.length === 0 && searchTerm ? (
+        <div className="bg-white shadow rounded-lg p-6">
+          <div style={{
+            textAlign: 'center',
+            padding: '48px',
+            color: '#6B7280'
+          }}>
+            <p style={{ fontSize: '16px' }}>
+              🔍 No results found for "{searchTerm}"
+            </p>
+            <p style={{ fontSize: '14px' }}>
+              Try different keywords or clear the search
+            </p>
+            <button 
+              onClick={() => setSearchTerm('')}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Clear Search
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <EmployeeProjectTable
+            assignments={paginated}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            loading={loading}
+          />
+          
+          {filteredAssignments.length > 0 && (
+            <div className="mt-6">
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
+      )}
 
       <Modal
         isOpen={isModalOpen}

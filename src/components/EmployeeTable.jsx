@@ -1,10 +1,13 @@
-import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../api/axiosInstance';
 import { Pencil, Trash2 } from 'lucide-react';
+import Table from './common/Table';
+import StatusBadge from './common/StatusBadge';
 import IconButton from './IconButton';
+import { formatDate, getStatusVariant } from '../utils/tableUtils';
 
-function EmployeeTable({ employees, onDelete, onEdit }) {
+function EmployeeTable({ employees, onDelete, onEdit, loading = false }) {
   const { isAdmin, isHR } = useAuth();
   const canManageEmployees = isAdmin() || isHR();
   const [departments, setDepartments] = useState([]);
@@ -28,7 +31,7 @@ function EmployeeTable({ employees, onDelete, onEdit }) {
     fetchMappings();
   }, []);
 
-  // Helper functions to get names by ID
+  // Helper functions
   const getDepartmentName = (deptId) => {
     if (!deptId) return 'N/A';
     const dept = departments.find(d => d.dept_id === parseInt(deptId));
@@ -41,142 +44,105 @@ function EmployeeTable({ employees, onDelete, onEdit }) {
     return position ? position.position_title : 'N/A';
   };
 
-  // Format date to "Jan 09, 2022" format
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  // Get status badge styling
-  const getStatusBadge = (status) => {
-    const baseClasses = "px-2 py-1 text-xs font-medium rounded-full";
-    
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return `${baseClasses} bg-green-100 text-green-800`;
-      case 'on leave':
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
-      case 'resigned':
-        return `${baseClasses} bg-red-100 text-red-800`;
-      default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
+  // Column definitions
+  const columns = [
+    {
+      key: 'employee_code',
+      label: 'Employee Code',
+      render: (row) => (
+        <span className="font-medium text-gray-900">
+          {row.employee_code || 'N/A'}
+        </span>
+      )
+    },
+    {
+      key: 'name',
+      label: 'Full Name',
+      render: (row) => (
+        <span className="font-medium text-gray-900">
+          {row.first_name} {row.last_name}
+        </span>
+      )
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      render: (row) => (
+        <span className="text-gray-600">{row.email}</span>
+      )
+    },
+    {
+      key: 'phone',
+      label: 'Phone',
+      render: (row) => (
+        <span className="text-gray-600">{row.phone || 'N/A'}</span>
+      )
+    },
+    {
+      key: 'department',
+      label: 'Department',
+      render: (row) => (
+        <span className="text-gray-600">{getDepartmentName(row.dept_id)}</span>
+      )
+    },
+    {
+      key: 'position',
+      label: 'Position',
+      render: (row) => (
+        <span className="text-gray-600">{getPositionName(row.position_id)}</span>
+      )
+    },
+    {
+      key: 'hire_date',
+      label: 'Hire Date',
+      render: (row) => (
+        <span className="text-gray-600">{formatDate(row.hire_date)}</span>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => (
+        <StatusBadge 
+          status={row.status || 'N/A'} 
+          variant={getStatusVariant(row.status)} 
+        />
+      )
     }
+  ];
+
+  // Render action buttons
+  const renderActions = (row) => {
+    if (!canManageEmployees) {
+      return <span className="text-xs text-gray-400">View only</span>;
+    }
+
+    return (
+      <>
+        <IconButton
+          icon={Pencil}
+          onClick={() => onEdit(row)}
+          variant="primary"
+          title="Edit Employee"
+        />
+        <IconButton
+          icon={Trash2}
+          onClick={() => onDelete(row.emp_id)}
+          variant="danger"
+          title="Delete Employee"
+        />
+      </>
+    );
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 rounded-lg">
-        <thead className="bg-gray-100 text-left">
-          <tr>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Employee Code
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Full Name
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Email
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Phone
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Department
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Position
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Hire Date
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Status
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              Actions
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {employees.map((emp) => (
-            <tr key={emp.emp_id} className="border-t hover:bg-gray-50">
-              <td className="px-4 py-3 font-medium text-gray-900">
-                {emp.employee_code || 'N/A'}
-              </td>
-              
-              <td className="px-4 py-3">
-                <div className="font-medium text-gray-900">
-                  {emp.first_name} {emp.last_name}
-                </div>
-              </td>
-              
-              <td className="px-4 py-3 text-gray-600">
-                {emp.email}
-              </td>
-              
-              <td className="px-4 py-3 text-gray-600">
-                {emp.phone || 'N/A'}
-              </td>
-              
-              <td className="px-4 py-3 text-gray-600">
-                {getDepartmentName(emp.dept_id)}
-              </td>
-              
-              <td className="px-4 py-3 text-gray-600">
-                {getPositionName(emp.position_id)}
-              </td>
-              
-              <td className="px-4 py-3 text-gray-600">
-                {formatDate(emp.hire_date)}
-              </td>
-              
-              <td className="px-4 py-3">
-                <span className={getStatusBadge(emp.status)}>
-                  {emp.status || 'N/A'}
-                </span>
-              </td>
-
-              {/* Actions Column */}
-              <td className="px-4 py-3 space-x-2">
-                {canManageEmployees ? (
-                  <>
-                    <IconButton
-                      icon={Pencil}
-                      onClick={() => onEdit(emp)}
-                      variant="primary"
-                      title="Edit Employee"
-                    />
-
-                    <IconButton
-                      icon={Trash2}
-                      onClick={() => onDelete(emp.emp_id)}
-                      variant="danger"
-                      title="Delete Employee"
-                    />
-                  </>
-                ) : (
-                  <span className="text-xs text-gray-400">
-                    View only
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      {employees.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <p>No employees found.</p>
-        </div>
-      )}
-    </div>
+    <Table
+      columns={columns}
+      data={employees}
+      loading={loading}
+      emptyMessage="No employees found"
+      renderActions={renderActions}
+    />
   );
 }
 

@@ -2,74 +2,90 @@ import CurrencyDisplay from './CurrencyDisplay';
 import { useAuth } from '../context/AuthContext';
 import { Pencil, Trash2 } from 'lucide-react';
 import IconButton from './IconButton';
+import Table from './common/Table';
+import { formatDateShort } from '../utils/tableUtils';
 
-function ProjectTable({ projects, onDelete, onEdit }) {
-  const { isAdmin, isHR, isManager, isUser } = useAuth();
+function ProjectTable({ projects, onDelete, onEdit, loading = false }) {
+  const { isAdmin, isHR } = useAuth();
   const canManageProjects = isAdmin() || isHR();
   const canSeeBudget = isAdmin() || isHR();
   const canDelete = isAdmin() || isHR();
 
+  // Column definitions
+  const columns = [
+    {
+      key: 'project_id',
+      label: 'ID',
+      render: (row) => <span className="text-gray-700">{row.project_id}</span>
+    },
+    {
+      key: 'project_name',
+      label: 'Project Name',
+      render: (row) => <span className="font-medium text-gray-900">{row.project_name}</span>
+    },
+    {
+      key: 'start_date',
+      label: 'Start',
+      render: (row) => <span className="text-gray-600">{formatDateShort(row.start_date)}</span>
+    },
+    {
+      key: 'end_date',
+      label: 'End',
+      render: (row) => <span className="text-gray-600">{formatDateShort(row.end_date)}</span>
+    },
+    {
+      key: 'budget',
+      label: canManageProjects ? 'Budget' : 'Allocation',
+      render: (row) => (
+        canSeeBudget ? (
+          <CurrencyDisplay amount={row.budget} />
+        ) : (
+          <span className="text-gray-600">{row.allocation_percent || 0}%</span>
+        )
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => <span className="text-gray-600">{row.status}</span>
+    },
+    {
+      key: 'project_manager_id',
+      label: 'Manager',
+      render: (row) => <span className="text-gray-600">{row.project_manager_id}</span>
+    }
+  ];
+
+  // Render action buttons
+  const renderActions = (row) => (
+    <>
+      {canManageProjects && (
+        <IconButton
+          icon={Pencil}
+          onClick={() => onEdit(row)}
+          variant="primary"
+          title="Edit Project"
+        />
+      )}
+      {canDelete && (
+        <IconButton
+          icon={Trash2}
+          onClick={() => onDelete(row.project_id)}
+          variant="danger"
+          title="Delete Project"
+        />
+      )}
+    </>
+  );
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 rounded-lg">
-        <thead className="bg-gray-100 text-left">
-          <tr>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">ID</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Project Name</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Start</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">End</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">
-              {canManageProjects ? 'Budget' : 'Allocation'}
-            </th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Status</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Manager</th>
-            <th className="px-4 py-3 text-sm font-semibold text-gray-600">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {projects.map((p) => (
-            <tr key={p.project_id} className="border-t hover:bg-gray-50">
-              <td className="px-4 py-3">{p.project_id}</td>
-              <td className="px-4 py-3">{p.project_name}</td>
-              <td className="px-4 py-3">{p.start_date?.split("T")[0]}</td>
-              <td className="px-4 py-3">{p.end_date?.split("T")[0]}</td>
-              <td className="px-4 py-3">
-                {canSeeBudget ? (
-                  <CurrencyDisplay amount={p.budget} />
-                ) : (
-                  <span className="text-sm text-gray-600">
-                    {p.allocation_percent || 0}%
-                  </span>
-                )}
-              </td>
-              <td className="px-4 py-3">{p.status}</td>
-              <td className="px-4 py-3">{p.project_manager_id}</td>
-
-              <td className="px-4 py-3 space-x-2">
-                {canManageProjects && (
-                  <IconButton
-                    icon={Pencil}
-                    onClick={() => onEdit(p)}
-                    variant="primary"
-                    title="Edit Project"
-                  />
-                )}
-                {canDelete && (
-                  <IconButton
-                    icon={Trash2}
-                    onClick={() => onDelete(p.project_id)}
-                    variant="danger"
-                    title="Delete Project"
-                  />
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-
-      </table>
-    </div>
+    <Table
+      columns={columns}
+      data={projects}
+      loading={loading}
+      emptyMessage="No projects found"
+      renderActions={renderActions}
+    />
   );
 }
 
