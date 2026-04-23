@@ -193,20 +193,26 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.data.success) {
-        const { token, user } = response.data.data;
+        const { token, user, tenant } = response.data.data;
+        const normalizedUser = {
+          ...user,
+          tenant_id: tenant?.tenant_id ?? user?.tenant_id,
+          tenant_key: tenant?.tenant_key ?? user?.tenant_key,
+          tenant_name: tenant?.tenant_name ?? user?.tenant_name,
+        };
         
-        console.log("LOGIN RESPONSE USER:", user);
-        console.log("LOGIN USER ROLE:", user.role);
+        console.log("LOGIN RESPONSE USER:", normalizedUser);
+        console.log("LOGIN USER ROLE:", normalizedUser.role);
         
         // Store token and user in localStorage
         localStorage.setItem(import.meta.env.VITE_TOKEN_STORAGE_KEY || 'ems_token', token);
-        localStorage.setItem(import.meta.env.VITE_USER_STORAGE_KEY || 'ems_user', JSON.stringify(user));
+        localStorage.setItem(import.meta.env.VITE_USER_STORAGE_KEY || 'ems_user', JSON.stringify(normalizedUser));
         
         // Setup axios headers
         setupAxiosInterceptors(token);
         
         // Update state
-        dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { token, user } });
+        dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { token, user: normalizedUser } });
         
         return { success: true, data: response.data.data };
       } else {

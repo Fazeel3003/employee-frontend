@@ -11,15 +11,29 @@ const axiosInstance = axios.create({
 // Request debugging interceptor (TEMPORARY)
 axiosInstance.interceptors.request.use(
   (config) => {
-    console.log("API Request:", config.baseURL + config.url);
-    
     const token = localStorage.getItem(import.meta.env.VITE_TOKEN_STORAGE_KEY || 'ems_token');
-    console.log("Token found:", !!token);
-    console.log("Token value:", token ? token.substring(0, 20) + "..." : "none");
-    
+    const userRaw = localStorage.getItem(import.meta.env.VITE_USER_STORAGE_KEY || 'ems_user');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("Authorization header set:", config.headers.Authorization);
+    }
+
+    if (userRaw) {
+      try {
+        const user = JSON.parse(userRaw);
+        const tenantId = user?.tenant_id || user?.tenantId;
+        const tenantKey = user?.tenant_key || user?.tenantKey;
+
+        if (tenantId) {
+          config.headers['X-Tenant-Id'] = String(tenantId);
+        }
+
+        if (tenantKey) {
+          config.headers['X-Tenant-Key'] = String(tenantKey);
+        }
+      } catch (error) {
+        // Ignore corrupted local user payload and proceed with token-only auth.
+      }
     }
     return config;
   },
